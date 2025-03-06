@@ -103,14 +103,21 @@ while running:
         bird_y = 0
         velocity = 0
 
-    # Collision detection
-    bird_rect = pygame.Rect(bird_x, bird_y, bird.get_width(), bird.get_height())
-    pipe_top_rect = pygame.Rect(pipe_x, 0, PIPE_WIDTH, pipe_top.get_height())
-    pipe_bottom_rect = pygame.Rect(pipe_x, BACKGROUND_HEIGHT - pipe_bottom_height, PIPE_WIDTH, pipe_bottom_height)
+    # Create mask for bird and pipe
+    bird_mask = pygame.mask.from_surface(bird)
+    pipe_top_mask = pygame.mask.from_surface(resized_pipe_top)
+    pipe_bottom_mask = pygame.mask.from_surface(resized_pipe_bottom)
 
-    if bird_rect.colliderect(pipe_top_rect) or bird_rect.colliderect(pipe_bottom_rect):
+    # Calculate offset between bird and pipe
+    offset_top = (pipe_x - bird_x, 0 - bird_y)
+    offset_bottom = (pipe_x - bird_x, BACKGROUND_HEIGHT - pipe_bottom_height - bird_y)
+
+    # Collision detection
+    if bird_mask.overlap(pipe_top_mask, offset_top) or bird_mask.overlap(
+        pipe_bottom_mask, offset_bottom
+    ):
         running = False
-        screen.blit(game_over_icon, (100, 100))
+        screen.blit(game_over_icon, (WIDTH / 2 - 100, HEIGHT / 2 - 100))
 
     # flip() the display to put your work on screen
     pygame.display.flip()
