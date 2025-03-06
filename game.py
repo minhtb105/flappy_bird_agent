@@ -1,10 +1,10 @@
 import random
 import time
 import pygame
+from configs.game_configs import *
 
 # Pygame setup
 pygame.init()
-WIDTH, HEIGHT = 400, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 running = True
@@ -14,51 +14,43 @@ pygame.display.set_caption("Flappy Bird Agent")
 
 # Function to show start images
 def show_start_images():
-    for i in range(6):
-        img = pygame.image.load(f'assets/{i}.png')
+    for img_path in START_IMAGES:
+        img = pygame.image.load(img_path)
         img = pygame.transform.scale(img, (WIDTH, HEIGHT))
         screen.blit(img, (0, 0))
         pygame.display.flip()
         time.sleep(0.5)
 
 # Game over
-game_over_icon = pygame.image.load(f'assets/gameover.png')
+game_over_icon = pygame.image.load(GAME_OVER_IMAGE)
 
 # Run the start images
 show_start_images()
 
 # Background
-background = pygame.image.load(f'assets/background.png')
-BACKGROUND_HEIGHT = 500
+background = pygame.image.load(BACKGROUND_IMAGE)
 resized_background = pygame.transform.scale(background, (WIDTH, BACKGROUND_HEIGHT))
 
 # Base
-base = pygame.image.load(f'assets/base.png')
-BASE_HEIGHT = HEIGHT - BACKGROUND_HEIGHT
+base = pygame.image.load(BASE_IMAGE)
 resized_base = pygame.transform.scale(base, (WIDTH, BASE_HEIGHT))
 
 # Bird
-bird = pygame.image.load(f'assets/bluebird.png')
-bird_x, bird_y = 50, 300
+bird = pygame.image.load(BIRD_IMAGE)
+bird_x, bird_y = BIRD_X, BIRD_Y
 velocity = 0  # bird speed
-gravity = 0.5
-jump_strength = -8  # Apply a jump force to the bird (negative value makes it move upwards)
 
 # Pipe
-pipe_top = pygame.image.load(f'assets/pipe.png')
-pipe_bottom = pygame.image.load(f'assets/pipe.png')
+pipe_top = pygame.image.load(PIPE_IMAGE)
+pipe_bottom = pygame.image.load(PIPE_IMAGE)
 
 # Pipe variables
-pipe_width = 50
-pipe_x = WIDTH - pipe_width
-pipe_speed = 3
-
+pipe_x = WIDTH - PIPE_WIDTH
 
 # function to generate a new pipe height
 def generate_random_pipe():
-    gap_size = 100
     top_height = random.randint(50, 350)
-    bottom_height = HEIGHT - BASE_HEIGHT - top_height - gap_size
+    bottom_height = HEIGHT - BASE_HEIGHT - top_height - PIPE_GAP_SIZE
 
     return top_height, bottom_height
 
@@ -74,17 +66,17 @@ while running:
     screen.blit(bird, (bird_x, bird_y))
 
     # Rescale image to random height
-    resized_pipe_top = pygame.transform.scale(pipe_top, (pipe_width, pipe_top_height))
-    resized_pipe_bottom = pygame.transform.scale(pipe_bottom, (pipe_width, pipe_bottom_height))
+    resized_pipe_top = pygame.transform.scale(pipe_top, (PIPE_WIDTH, pipe_top_height))
+    resized_pipe_bottom = pygame.transform.scale(pipe_bottom, (PIPE_WIDTH, pipe_bottom_height))
 
     screen.blit(resized_pipe_top, (pipe_x, 0))
     screen.blit(resized_pipe_bottom, (pipe_x, BACKGROUND_HEIGHT - pipe_bottom_height))
 
     # Move pipes
-    pipe_x -= pipe_speed
+    pipe_x -= PIPE_SPEED
 
     # Check if pipes go off the screen and reset them
-    if pipe_x < -pipe_width:
+    if pipe_x < -PIPE_WIDTH:
         pipe_x = WIDTH
         pipe_top_height, pipe_bottom_height = generate_random_pipe()
 
@@ -95,10 +87,10 @@ while running:
             running = False
 
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-            velocity = jump_strength
+            velocity = JUMP_STRENGTH
 
     # Apply gravity
-    velocity += gravity
+    velocity += GRAVITY
     bird_y += velocity
 
     # Prevent bird from falling below base
@@ -113,8 +105,8 @@ while running:
 
     # Collision detection
     bird_rect = pygame.Rect(bird_x, bird_y, bird.get_width(), bird.get_height())
-    pipe_top_rect = pygame.Rect(pipe_x, 0, pipe_width, pipe_top.get_height())
-    pipe_bottom_rect = pygame.Rect(pipe_x, BACKGROUND_HEIGHT - pipe_bottom_height, pipe_width, pipe_bottom_height)
+    pipe_top_rect = pygame.Rect(pipe_x, 0, PIPE_WIDTH, pipe_top.get_height())
+    pipe_bottom_rect = pygame.Rect(pipe_x, BACKGROUND_HEIGHT - pipe_bottom_height, PIPE_WIDTH, pipe_bottom_height)
 
     if bird_rect.colliderect(pipe_top_rect) or bird_rect.colliderect(pipe_bottom_rect):
         running = False
