@@ -64,7 +64,7 @@ for episode in range(NUM_EPISODES):
         next_state = game.get_state()
 
         if not TEST_MODE:
-            agent.store_transition(state, action, reward, next_state)
+            agent.replay_buffer.store_transition(state, action, reward, next_state)
             agent.train()
 
         state = next_state
