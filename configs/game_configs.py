@@ -1,5 +1,3 @@
-# game_configs.py
-
 # Pygame setup
 WIDTH = 400
 HEIGHT = 600
