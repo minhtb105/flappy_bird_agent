@@ -122,7 +122,7 @@ class FlappyBirdAgent:
 
         # Compute target Q-values using target network
         with torch.no_grad():
-            best_action = self.policy_net(next_states).argmax(1).squeeze(1)  # Select best action using policy_net
+            best_action = self.policy_net(next_states).argmax(dim=-1, keepdim=True)  # Select best action using policy_net
             next_q_values = self.target_net(next_states).gather(1, best_action).squeeze(1)  # Evaluate using target_net
             target_q_values = rewards + self.gamma * next_q_values
 
