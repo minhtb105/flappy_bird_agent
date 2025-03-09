@@ -104,7 +104,7 @@ class FlappyBirdAgent:
 
     def train(self):
         """
-        Trains the model using Prioritized Experience Replay.
+        Trains the model using Double DQN with Prioritized Experience Replay.
         """
         if len(self.replay_buffer.memory) < self.batch_size:
             return   # Skip training if not enough samples
@@ -122,7 +122,8 @@ class FlappyBirdAgent:
 
         # Compute target Q-values using target network
         with torch.no_grad():
-            next_q_values = self.target_net(next_states).max(1)[0].detach()
+            best_action = self.policy_net(next_states).argmax(1).squeeze(1)  # Select best action using policy_net
+            next_q_values = self.target_net(next_states).gather(1, best_action).squeeze(1)  # Evaluate using target_net
             target_q_values = rewards + self.gamma * next_q_values
 
         # Compute TD-Error

@@ -47,8 +47,13 @@ class FlappyBirdPygame:
 
     # function to generate a new pipe height
     def generate_random_pipe(self):
-        self.pipe_top_height = random.randint(50, 350)
-        self.pipe_bottom_height = HEIGHT - BASE_HEIGHT - self.pipe_top_height - PIPE_GAP_SIZE
+        """Randomizes pipe height and gap size for every new pipe."""
+        min_pipe_height = 50
+        max_pipe_height = HEIGHT - PIPE_GAP_SIZE - 100  # Ensure pipes don’t block the whole screen
+
+        self.pipe_gap = random.randint(120, 180)  # Randomize gap size
+        self.pipe_top_height = random.randint(min_pipe_height, max_pipe_height)
+        self.pipe_bottom_height = HEIGHT - self.pipe_top_height - self.pipe_gap
 
     def is_collision(self):
         # Create mask for bird and pipe
