@@ -52,7 +52,7 @@ class FlappyBirdPygame:
         max_pipe_height = BACKGROUND_HEIGHT - 200  # Ensure there's enough space for the gap
 
         min_gap_size = 100  # Prevents gaps that are too small
-        max_gap_size = 200  # Prevents gaps that are too large
+        max_gap_size = 150  # Prevents gaps that are too large
 
         self.pipe_gap = random.randint(min_gap_size, max_gap_size)  # Enforce safe gap size
         self.pipe_top_height = random.randint(min_pipe_height, max_pipe_height - self.pipe_gap)
