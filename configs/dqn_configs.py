@@ -4,9 +4,9 @@ LEARNING_RATE = 0.001
 BATCH_SIZE = 32
 
 # Exploration parameters
-EPSILON_START = 0.9  # Initial exploration rate
+EPSILON_START = 1  # Initial exploration rate
 EPSILON_MIN = 0.01   # Minimum exploration rate
-EPSILON_DECAY = 0.995  # Decay rate per step
+EPSILON_DECAY = 0.999  # Decay rate per step
 
 # Replay Memory
-MEMORY_SIZE = 2000
+MEMORY_SIZE = 50000
