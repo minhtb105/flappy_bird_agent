@@ -26,34 +26,31 @@ pip install -r requirements.txt
 Train the **Flappy Bird agent** using Deep Q-Learning:
 ```bash
 python train.py
-
-- The AI will start learning from scratch!
-
-- Model checkpoints are saved every 500 episodes.
-- Training graphs are automatically generated to visualize progress.
+The AI will start learning from scratch!
+Model checkpoints are saved every 500 episodes.
+Training graphs are automatically generated to visualize progress.
 
 ---
 
-## 🔬 How the AI Works
-Flappy Bird AI is trained using **Deep Q-Learning (DQN)** with several optimizations:
+🔬 How the AI Works
+Flappy Bird AI is trained using Deep Q-Learning (DQN) with several optimizations:
 
-### **🧠 Neural Network Architecture**
-- **Input:** Bird's **y-position, velocity, distance to next pipe, and gap center**
-- **Hidden Layers:** Fully connected **deep neural network**
-- **Output:** Q-values for **jump or no jump** decisions
+🧠 Neural Network Architecture
+Input: Bird's y-position, velocity, distance to next pipe, and gap center
+Hidden Layers: Fully connected deep neural network
+Output: Q-values for jump or no jump decisions
 
-### **🏗️ Reinforcement Learning Enhancements**
-| **Feature** | **Purpose** |
-|------------|------------|
-| **Double DQN (DDQN)** | Prevents Q-value overestimation |
-| **Prioritized Experience Replay (PER)** | Speeds up learning by focusing on important experiences |
-| **Stochastic Pipes** | Forces AI to adapt to random environments |
-| **Soft & Hard Target Network Updates** | Improves stability during training |
+🏗️ Reinforcement Learning Enhancements
+Feature	Purpose
+Double DQN (DDQN)	Prevents Q-value overestimation
+Prioritized Experience Replay (PER)	Speeds up learning by focusing on important experiences
+Stochastic Pipes	Forces AI to adapt to random environments
+Soft & Hard Target Network Updates	Improves stability during training
 
 ---
 
-## 🚀 Future Improvements
-🔹 **NeuroEvolution** – Train the AI using genetic algorithms instead of backpropagation.  
-🔹 **Self-Play** – Train the AI by competing against itself.  
-🔹 **Multi-Agent Training** – Create multiple birds learning in parallel.  
-🔹 **Imitation Learning** – Train the AI using human gameplay data.  
+🚀 Future Improvements
+🔹 NeuroEvolution – Train the AI using genetic algorithms instead of backpropagation.
+🔹 Self-Play – Train the AI by competing against itself.
+🔹 Multi-Agent Training – Create multiple birds learning in parallel.
+🔹 Imitation Learning – Train the AI using human gameplay data.
