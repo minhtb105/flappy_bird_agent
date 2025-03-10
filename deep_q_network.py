@@ -10,15 +10,15 @@ class DeepQNetwork(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(DeepQNetwork, self).__init__()
         self.fc1 = nn.Linear(input_dim, 256)
-        self.bn1 = nn.BatchNorm1d(256)
+        self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.Linear(256, 256)
-        self.bn2 = nn.BatchNorm1d(256)
+        self.ln2 = nn.LayerNorm(256)
         self.fc3 = nn.Linear(256, 256)
 
 
     def forward(self, x):
-        x = torch.relu(self.bn1(self.fc1(x)))
-        x = torch.relu(self.bn2(self.fc2(x)))
+        x = torch.relu(self.ln1(self.fc1(x)))
+        x = torch.relu(self.ln2(self.fc2(x)))
 
         return self.fc3(x)
 
@@ -95,14 +95,17 @@ class FlappyBirdAgent:
         """
         Selects an action using a linear decay strategy.
         """
+
         self.epsilon = max(self.epsilon_min,
                            EPSILON_START - (EPSILON_START - self.epsilon_min) * (steps_done / 50000))
 
         if random.random() < self.epsilon:
-            return torch.tensor([[torch.randint(self.action_dim, (1,))]], dtype=torch.long)
+            action = torch.tensor([[torch.randint(self.action_dim, (1,))]], dtype=torch.long)
         else:
             with torch.no_grad():
-                return self.policy_net(state.float()).max(1)[1].view(1, 1)
+                action = self.policy_net(state.float()).max(1)[1].view(1, 1)
+
+        return action
 
     def train(self):
         """
