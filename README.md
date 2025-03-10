@@ -11,7 +11,7 @@
 - **🎯 Prioritized Experience Replay (PER)** – AI learns faster by focusing on important mistakes.
 - **🌎 Stochastic Pipes (Randomized Levels)** – Prevents overfitting by forcing AI to adapt.
 - **⚡ Variable Game Speed** – Teaches AI to handle different difficulty levels.
-- **💾 Model Checkpointing** – Saves progress every 500 episodes for later training or testing.
+- **💾 Model Checkpointing** – Saves progress every 100 episodes for later training or testing.
 
 ---
 
@@ -20,7 +20,7 @@ Ensure you have Python 3.8+ installed, then run:
 ```bash
 pip install -r requirements.txt
 
-## 🤖 Training the AI
+# 🤖 Training the AI
 Train the **Flappy Bird agent** using Deep Q-Learning:
 ```bash
 python train.py
