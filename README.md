@@ -20,15 +20,19 @@ Ensure you have Python 3.8+ installed, then run:
 ```bash
 pip install -r requirements.txt
 
+---
+
 # 🤖 Training the AI
 Train the **Flappy Bird agent** using Deep Q-Learning:
 ```bash
 python train.py
 
-The AI will start learning from scratch!
+- The AI will start learning from scratch!
 
-Model checkpoints are saved every 500 episodes.
-Training graphs are automatically generated to visualize progress.
+- Model checkpoints are saved every 500 episodes.
+- Training graphs are automatically generated to visualize progress.
+
+---
 
 ## 🔬 How the AI Works
 Flappy Bird AI is trained using **Deep Q-Learning (DQN)** with several optimizations:
@@ -45,6 +49,8 @@ Flappy Bird AI is trained using **Deep Q-Learning (DQN)** with several optimizat
 | **Prioritized Experience Replay (PER)** | Speeds up learning by focusing on important experiences |
 | **Stochastic Pipes** | Forces AI to adapt to random environments |
 | **Soft & Hard Target Network Updates** | Improves stability during training |
+
+---
 
 ## 🚀 Future Improvements
 🔹 **NeuroEvolution** – Train the AI using genetic algorithms instead of backpropagation.  
