@@ -2,6 +2,7 @@ import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from collections import deque
 import numpy as np
 from configs.dqn_configs import GAMMA, LEARNING_RATE, BATCH_SIZE, EPSILON_START, EPSILON_MIN, EPSILON_DECAY, MEMORY_SIZE
 
@@ -9,16 +10,17 @@ class DeepQNetwork(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(DeepQNetwork, self).__init__()
         self.fc1 = nn.Linear(input_dim, 256)
+        self.bn1 = nn.BatchNorm1d(256)
         self.fc2 = nn.Linear(256, 256)
+        self.bn2 = nn.BatchNorm1d(256)
         self.fc3 = nn.Linear(256, 256)
-        self.fc4 = nn.Linear(256, output_dim)
+
 
     def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = torch.relu(self.fc3(x))
+        x = torch.relu(self.bn1(self.fc1(x)))
+        x = torch.relu(self.bn2(self.fc2(x)))
 
-        return self.fc4(x)
+        return self.fc3(x)
 
 class PrioritizedReplayBuffer:
     def __init__(self, capacity, alpha=0.6):
@@ -28,7 +30,7 @@ class PrioritizedReplayBuffer:
             :param alpha: Priority exponent (0 = uniform sampling, 1 = full priority)
         """
         self.capacity = capacity
-        self.memory = []
+        self.memory = deque(maxlen=capacity)
         self.position = 0  # # Pointer for inserting experiences
         self.priorities = np.zeros((capacity,), dtype=np.float32)  # Stores priority values
         self.alpha = alpha
@@ -91,10 +93,10 @@ class FlappyBirdAgent:
 
     def choose_action(self, state, steps_done=0):
         """
-        Selects an action using an epsilon-greedy strategy.
+        Selects an action using a linear decay strategy.
         """
         self.epsilon = max(self.epsilon_min,
-                           self.epsilon * (self.epsilon_decay ** (1 / (1 + steps_done / 10000))))  # Slower decay
+                           EPSILON_START - (EPSILON_START - self.epsilon_min) * (steps_done / 50000))
 
         if random.random() < self.epsilon:
             return torch.tensor([[torch.randint(self.action_dim, (1,))]], dtype=torch.long)
