@@ -10,15 +10,13 @@ class DeepQNetwork(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(DeepQNetwork, self).__init__()
         self.fc1 = nn.Linear(input_dim, 256)
-        self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.Linear(256, 256)
-        self.ln2 = nn.LayerNorm(256)
         self.fc3 = nn.Linear(256, 256)
 
 
     def forward(self, x):
-        x = torch.relu(self.ln1(self.fc1(x)))
-        x = torch.relu(self.ln2(self.fc2(x)))
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
 
         return self.fc3(x)
 
@@ -96,8 +94,7 @@ class FlappyBirdAgent:
         Selects an action using a linear decay strategy.
         """
 
-        self.epsilon = max(self.epsilon_min,
-                           EPSILON_START - (EPSILON_START - self.epsilon_min) * (steps_done / 50000))
+        self.epsilon = max(self.epsilon_min, EPSILON_START * (0.995 ** steps_done))
 
         if random.random() < self.epsilon:
             action = torch.tensor([[torch.randint(self.action_dim, (1,))]], dtype=torch.long)
@@ -130,6 +127,9 @@ class FlappyBirdAgent:
             best_action = self.policy_net(next_states).argmax(dim=-1, keepdim=True)  # Select best action using policy_net
             next_q_values = self.target_net(next_states).gather(1, best_action).squeeze(1)  # Evaluate using target_net
             target_q_values = rewards + self.gamma * next_q_values
+
+            # Normalize target Q-values to prevent exploding gradients
+            target_q_values = (target_q_values - target_q_values.mean()) / (target_q_values.std() + 1e-5)
 
         # Compute TD-Error
         td_errors = target_q_values - q_values

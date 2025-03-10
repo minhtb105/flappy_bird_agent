@@ -76,21 +76,16 @@ class FlappyBirdPygame:
         """
             Returns the normalized game state as a feature vector.
             """
-        # Normalize bird position (0 = top, 1 = bottom)
-        bird_y_norm = self.bird_y / HEIGHT
-
-        # Normalize velocity (assuming max speed is ±10)
-        velocity_norm = self.velocity / 10
-
-        # Normalize pipe distance (0 = bird at pipe, 1 = farthest away)
-        pipe_x_norm = self.pipe_x / WIDTH
-
-        # Normalize distance to gap (0 = bird at gap center, values around -1 to 1)
-        gap_center = self.pipe_top_height + (PIPE_GAP_SIZE // 2)
-        distance_to_gap_norm = (self.bird_y - gap_center) / HEIGHT
+        state = [
+            self.bird_y / HEIGHT,  # Normalize bird height
+            self.velocity / 10,  # Normalize velocity
+            (self.pipe_x - self.bird_x) / WIDTH,  # Distance to next pipe
+            ((self.pipe_top_height + self.pipe_gap / 2) - self.bird_y) / HEIGHT,  # Distance to pipe gap center
+            1 if self.velocity > 0 else 0  # Bird moving up (1) or down (0)
+        ]
 
         # Return normalized state
-        return np.array([bird_y_norm, velocity_norm, pipe_x_norm, distance_to_gap_norm])
+        return np.array(state)
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -111,9 +106,11 @@ class FlappyBirdPygame:
         # Move bird
         self.move(action)
 
-        # Penalize staying at the top too long
-        if self.bird_y < 50 or self.bird_y > HEIGHT - BASE_HEIGHT - 50:
-            reward -= 0.05  # Small penalty for staying too high or too low
+        # Penalize staying at the top for too long
+        if self.bird_y < 50:
+            reward -= 1  # Stronger penalty for staying at the top
+        elif self.bird_y > BACKGROUND_HEIGHT - 50:
+            reward -= 0.5  # Penalize staying too low
 
         # Move pipes
         self.pipe_x -= PIPE_SPEED
