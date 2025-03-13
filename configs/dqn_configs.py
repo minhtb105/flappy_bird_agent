@@ -9,4 +9,4 @@ EPSILON_MIN = 0.01   # Minimum exploration rate
 EPSILON_DECAY = 0.999  # Decay rate per step
 
 # Replay Memory
-MEMORY_SIZE = 200000
+MEMORY_SIZE = 150000
