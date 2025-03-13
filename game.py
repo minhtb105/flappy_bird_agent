@@ -25,7 +25,11 @@ class FlappyBirdPygame:
 
         self.show_start_images()
         self.reset()
-        
+
+        # Initialize pipes
+        self.pipes = []
+        self.create_initial_pipes()
+
     # Function to show start images
     def show_start_images(self):
         for img_path in START_IMAGES:
@@ -39,14 +43,18 @@ class FlappyBirdPygame:
         # Reset game to original state
         self.bird_x, self.bird_y = BIRD_X, BIRD_Y
         self.velocity = 0
-        self.pipe_x = WIDTH
-        self.generate_random_pipe()
+        self.pipes = []
+        self.create_initial_pipes()
         self.is_game_over = False
         self.score = 0
-        self.frame_count = 0
+
+    def create_initial_pipes(self):
+        """Create the initial columns with equal spacing."""
+        for i in range(4):  # Assume creating 4 initial columns.
+            (self.create_new_pipe((i + 2) * PIPE_SPACING))
 
     # function to generate a new pipe height
-    def generate_random_pipe(self):
+    def create_new_pipe(self, x_position):
         """Randomizes pipe height and gap size while ensuring a valid gap."""
         min_pipe_height = 50  # Minimum pipe height (prevents pipes from covering the whole screen)
         max_pipe_height = BACKGROUND_HEIGHT - 200  # Ensure there's enough space for the gap
@@ -54,43 +62,90 @@ class FlappyBirdPygame:
         min_gap_size = 100  # Prevents gaps that are too small
         max_gap_size = 150  # Prevents gaps that are too large
 
-        self.pipe_gap = random.randint(min_gap_size, max_gap_size)  # Enforce safe gap size
-        self.pipe_top_height = random.randint(min_pipe_height, max_pipe_height - self.pipe_gap)
-        self.pipe_bottom_height = BACKGROUND_HEIGHT - self.pipe_top_height - self.pipe_gap
+        pipe_gap = random.randint(min_gap_size, max_gap_size)  # Enforce safe gap size
+        pipe_top_height = random.randint(min_pipe_height, max_pipe_height - pipe_gap)
+        pipe_bottom_height = BACKGROUND_HEIGHT - pipe_top_height - pipe_gap
+
+        new_pipe = {
+            'x': x_position,
+            'top_height': pipe_top_height,
+            'bottom_height': pipe_bottom_height,
+            'gap': pipe_gap
+        }
+
+        self.pipes.append(new_pipe)
 
     def is_collision(self):
         # Create mask for bird and pipe
         bird_mask = pygame.mask.from_surface(self.bird)
-        resized_pipe_top = pygame.transform.scale(self.pipe_top, (PIPE_WIDTH, self.pipe_top_height))
-        resized_pipe_bottom = pygame.transform.scale(self.pipe_bottom, (PIPE_WIDTH, self.pipe_bottom_height))
-        pipe_top_mask = pygame.mask.from_surface(resized_pipe_top)
-        pipe_bottom_mask = pygame.mask.from_surface(resized_pipe_bottom)
 
-        # Calculate offset between bird and pipe
-        offset_top = (self.pipe_x - self.bird_x, 0 - self.bird_y)
-        offset_bottom = (self.pipe_x - self.bird_x, BACKGROUND_HEIGHT - self.pipe_bottom_height - self.bird_y)
+        for pipe in self.pipes:
+            resized_pipe_top = pygame.transform.scale(self.pipe_top, (PIPE_WIDTH, pipe['top_height']))
+            resized_pipe_bottom = pygame.transform.scale(self.pipe_bottom, (PIPE_WIDTH, pipe['bottom_height']))
+            pipe_top_mask = pygame.mask.from_surface(resized_pipe_top)
+            pipe_bottom_mask = pygame.mask.from_surface(resized_pipe_bottom)
 
-        return bird_mask.overlap(pipe_top_mask, offset_top) or bird_mask.overlap(pipe_bottom_mask, offset_bottom)
+            # Calculate offset between bird and pipe
+            offset_top = (pipe['x'] - self.bird_x, 0 - self.bird_y)
+            offset_bottom = (pipe['x'] - self.bird_x, BACKGROUND_HEIGHT - pipe['bottom_height'] - self.bird_y)
+
+            if bird_mask.overlap(pipe_top_mask, offset_top) or bird_mask.overlap(pipe_bottom_mask, offset_bottom):
+                return True
+
+        return False
 
     def get_state(self):
         """
-            Returns the normalized game state as a feature vector.
-            """
-        # Normalize bird position (0 = top, 1 = bottom)
-        bird_y_norm = self.bird_y / HEIGHT
+        Returns the current game state as a gray scale image.
+        """
+        bird_y_normalized = self.bird_y / HEIGHT
+        velocity_normalized = self.velocity / 10
 
-        # Normalize velocity (assuming max speed is ±10)
-        velocity_norm = self.velocity / 10
+        last_pipe = self.pipes[-1] if self.pipes else None
+        next_pipe = None  # Find the column in front of the bird
+        next_next_pipe = None
 
-        # Normalize pipe distance (0 = bird at pipe, 1 = farthest away)
-        pipe_x_norm = self.pipe_x / WIDTH
+        for i, pipe in enumerate(self.pipes):
+            if pipe['x'] > self.bird_x:
+                next_pipe = pipe
+                if i + 1 < len(self.pipes):
+                    next_next_pipe = self.pipes[i + 1]
+                break
 
-        # Normalize distance to gap (0 = bird at gap center, values around -1 to 1)
-        gap_center = self.pipe_top_height + (PIPE_GAP_SIZE // 2)
-        distance_to_gap_norm = (self.bird_y - gap_center) / HEIGHT
+        last_pipe_x = last_top_pipe_y = last_bottom_pipe_y = 1.0
+        next_pipe_x = next_top_pipe_y = next_bottom_pipe_y = 1.0
+        next_next_pipe_x = next_next_top_pipe_y = next_next_bottom_pipe_y = 1.0
 
-        # Return normalized state
-        return np.array([bird_y_norm, velocity_norm, pipe_x_norm, distance_to_gap_norm])
+        if last_pipe:
+            last_pipe_x = last_pipe['x'] / WIDTH
+            last_top_pipe_y = last_pipe['top_height'] / HEIGHT
+            last_bottom_pipe_y = (HEIGHT - last_pipe['bottom_height']) / HEIGHT
+
+        if next_pipe:
+            next_pipe_x = next_pipe['x'] / WIDTH
+            next_top_pipe_y = next_pipe['top_height'] / HEIGHT
+            next_bottom_pipe_y = (HEIGHT - next_pipe['bottom_height']) / HEIGHT
+
+        if next_next_pipe:
+            next_next_pipe_x = next_next_pipe['x'] / WIDTH
+            next_next_top_pipe_y = next_next_pipe['top_height'] / HEIGHT
+            next_next_bottom_pipe_y = (HEIGHT - next_next_pipe['bottom_height']) / HEIGHT
+
+        state = [
+            last_pipe_x,
+            last_top_pipe_y,
+            last_bottom_pipe_y,
+            next_pipe_x,
+            next_top_pipe_y,
+            next_bottom_pipe_y,
+            next_next_pipe_x,
+            next_next_top_pipe_y,
+            next_next_bottom_pipe_y,
+            bird_y_normalized,
+            velocity_normalized,
+        ]
+
+        return np.array(state)
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -105,21 +160,25 @@ class FlappyBirdPygame:
         """
         self.handle_events()
 
-        self.frame_count += 1  # Count frames for training
-        reward = 0.1  # Small reward for surviving
+        reward = 0
 
         # Move bird
         self.move(action)
 
-        # Penalize staying at the top too long
-        if self.bird_y < 50 or self.bird_y > HEIGHT - BASE_HEIGHT - 50:
-            reward -= 0.05  # Small penalty for staying too high or too low
+        # Penalize staying at the top or at the bottom too long
+        if self.bird_y < 100:
+            reward -= 0.5
+        elif self.bird_y > BACKGROUND_HEIGHT - 100:
+            reward -= 0.3
 
         # Move pipes
-        self.pipe_x -= PIPE_SPEED
-        if self.pipe_x < -PIPE_WIDTH:
-            self.pipe_x = WIDTH
-            self.generate_random_pipe()
+        for pipe in self.pipes:
+            pipe['x'] -= PIPE_SPEED
+
+        # Remove the old column from the screen and create a new column
+        if len(self.pipes) > 0 and self.pipes[0]['x'] < -PIPE_WIDTH:
+            self.pipes.pop(0)
+            self.create_new_pipe(self.pipes[-1]['x'] + PIPE_SPACING)
             self.score += 1  # Gain points when passing pipe
             reward += 1  # Big reward when passing a pipe
 
@@ -132,6 +191,8 @@ class FlappyBirdPygame:
             reward = -1  # Heavy penalty for crashing
 
             return reward, self.is_game_over, self.score  # Game over
+
+        reward += 0.01  # Encourage staying near the gap
 
         self.update_ui()
         self.clock.tick(FPS)
@@ -161,10 +222,11 @@ class FlappyBirdPygame:
         self.screen.blit(self.base, (0, 500))
         self.screen.blit(self.bird, (self.bird_x, self.bird_y))
 
-        resized_pipe_top = pygame.transform.scale(self.pipe_top, (PIPE_WIDTH, self.pipe_top_height))
-        resized_pipe_bottom = pygame.transform.scale(self.pipe_bottom, (PIPE_WIDTH, self.pipe_bottom_height))
-        self.screen.blit(resized_pipe_top, (self.pipe_x, 0))
-        self.screen.blit(resized_pipe_bottom, (self.pipe_x, BACKGROUND_HEIGHT - self.pipe_bottom_height))
+        for pipe in self.pipes:
+            resized_pipe_top = pygame.transform.scale(self.pipe_top, (PIPE_WIDTH, pipe['top_height']))
+            resized_pipe_bottom = pygame.transform.scale(self.pipe_bottom, (PIPE_WIDTH, pipe['bottom_height']))
+            self.screen.blit(resized_pipe_top, (pipe['x'], 0))
+            self.screen.blit(resized_pipe_bottom, (pipe['x'], BACKGROUND_HEIGHT - pipe['bottom_height']))
 
         text = self.font.render("Score: " + str(self.score), True, (255, 255, 255))
         self.screen.blit(text, [0, 0])

@@ -1,6 +1,6 @@
 # Hyperparameters for Deep Q-Network
-GAMMA = 0.9  # Discount factor
-LEARNING_RATE = 0.001
+GAMMA = 0.999  # Discount factor
+LEARNING_RATE = 0.01
 BATCH_SIZE = 32
 
 # Exploration parameters
@@ -9,4 +9,4 @@ EPSILON_MIN = 0.01   # Minimum exploration rate
 EPSILON_DECAY = 0.999  # Decay rate per step
 
 # Replay Memory
-MEMORY_SIZE = 50000
+MEMORY_SIZE = 200000

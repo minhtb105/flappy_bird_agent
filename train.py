@@ -10,21 +10,21 @@ from visualize_training import plot
 
 # Training configurations
 LOAD_MODEL = True  # Load from a saved checkpoint if available
-SAVE_INTERVAL = 500  # Save the model every 500 steps
+SAVE_INTERVAL = 10000  # Save the model every 10000 steps
 TEST_MODE = False  # If True, AI only plays without training
 NUM_EPISODES = 10000  # Increased number of episodes for longer training
-MAX_STEPS_PER_EPISODE = 10000  # Maximum steps per episode
-CONSECUTIVE_WINS_THRESHOLD = 20  # Stop training if AI wins 20 consecutive episodes
+MAX_STEPS_PER_EPISODE = 10000000  # Maximum steps per episode
+CONSECUTIVE_WINS_THRESHOLD = 100  # Stop training if AI wins 100 consecutive episodes
 
 # Initialize game and agent
 game = FlappyBirdPygame()
-state_dim = 4  # [bird_y, velocity, pipe_x, distance_to_gap]
-action_dim = 2  # [Do nothing, Jump]
-agent = FlappyBirdAgent(state_dim, action_dim)
+input_shape = 11
+num_actions = 2  # [Do nothing, Jump]
+agent = FlappyBirdAgent(input_shape, num_actions)
 
 # Target Network Update Configurations
-TARGET_UPDATE = 10000  # Hard update every 10,000 steps
-tau = 0.01  # Soft update factor
+TARGET_UPDATE = 3000  # Hard update every3,000 steps
+tau = 0.05  # Soft update factor
 steps_done = 0  # Step counter
 
 # Load model if available
@@ -57,7 +57,7 @@ for episode in range(NUM_EPISODES):
     while not game.is_game_over and steps < MAX_STEPS_PER_EPISODE:
         state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
 
-        action = agent.choose_action(state_tensor, steps).item()
+        action = agent.choose_action(state_tensor).item()
         action_one_hot = [0, 1] if action == 1 else [1, 0]
 
         reward, game_over, score = game.step(action_one_hot)

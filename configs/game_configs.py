@@ -1,5 +1,5 @@
 # Pygame setup
-WIDTH = 400
+WIDTH = 600
 HEIGHT = 600
 FPS = 60
 
@@ -19,6 +19,7 @@ JUMP_STRENGTH = -8  # Apply a jump force to the bird (negative value makes it mo
 PIPE_WIDTH = 50
 PIPE_SPEED = 3
 PIPE_GAP_SIZE = 100  # Distance between two pipes
+PIPE_SPACING = 150
 
 # Asset paths
 ASSETS_PATH = "assets/"
