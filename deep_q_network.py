@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-from configs.dqn_configs import GAMMA, LEARNING_RATE, BATCH_SIZE, EPSILON_START, EPSILON_MIN, EPSILON_DECAY, MEMORY_SIZE
+from configs.dqn_configs import *
 
 class DeepQNetwork(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -65,7 +65,7 @@ class PrioritizedReplayBuffer:
 
     def update_priorities(self, indices, td_errors):
         """Updates the priorities of sampled transitions."""
-        self.priorities[indices] = td_errors + 1e-5  # Avoid zero priority
+        self.priorities[indices] = abs(td_errors) + 0.001  # Avoid zero priority
 
 
 class FlappyBirdAgent:
