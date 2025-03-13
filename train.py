@@ -34,7 +34,7 @@ if LOAD_MODEL and os.path.exists("policy_net.pth"):
     print("Loaded saved model.")
 
     # Reset epsilon so AI continues exploring instead of only exploiting past actions
-    agent.epsilon = max(agent.epsilon_min, 0.1)  # Ensure some exploration
+    agent.epsilon = max(agent.epsilon_min, agent.epsilon * 0.99995)  # Ensure some exploration
 
 if os.path.exists("replay_buffer.pkl"):
     with open("replay_buffer.pkl", "rb") as f:
@@ -72,10 +72,6 @@ for episode in range(NUM_EPISODES):
         steps += 1
         steps_done += 1
 
-        # Hard Update: Update target network every `TARGET_UPDATE` steps
-        if steps_done % TARGET_UPDATE == 0:
-            agent.target_net.load_state_dict(agent.policy_net.state_dict())
-
         # Soft Update: Gradually update target network weights
         for target_param, policy_param in zip(agent.target_net.parameters(), agent.policy_net.parameters()):
             target_param.data.copy_(tau * policy_param.data + (1 - tau) * target_param.data)
@@ -112,7 +108,7 @@ for episode in range(NUM_EPISODES):
         break
 
 with open("replay_buffer.pkl", "wb") as f:
-    pickle.dump(agent.replay_buffer, f)
+    pickle.dump(list(agent.replay_buffer.memory), f)
 
 print("Training Completed!")
 

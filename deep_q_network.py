@@ -1,27 +1,24 @@
 import random
-from collections import deque
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as f
 import numpy as np
-from configs.dqn_configs import *
+from configs.dqn_configs import GAMMA, LEARNING_RATE, BATCH_SIZE, EPSILON_START, EPSILON_MIN, EPSILON_DECAY, MEMORY_SIZE
 
 class DeepQNetwork(nn.Module):
-    def __init__(self, input_dim, action_dim):
+    def __init__(self, input_dim, output_dim):
         super(DeepQNetwork, self).__init__()
         self.fc1 = nn.Linear(input_dim, 256)
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, 256)
-        self.fc4 = nn.Linear(256, action_dim)
+        self.fc4 = nn.Linear(256, output_dim)
 
     def forward(self, x):
-        x = f.relu(self.fc1(x))
-        x = f.relu(self.fc2(x))
-        x = f.relu(self.fc3(x))
+        x = torch.relu(self.fc1(x))
+        x = torch.relu(self.fc2(x))
+        x = torch.relu(self.fc3(x))
 
         return self.fc4(x)
-
 
 class PrioritizedReplayBuffer:
     def __init__(self, capacity, alpha=0.6):
@@ -31,7 +28,7 @@ class PrioritizedReplayBuffer:
             :param alpha: Priority exponent (0 = uniform sampling, 1 = full priority)
         """
         self.capacity = capacity
-        self.memory = deque(maxlen=self.capacity)
+        self.memory = []
         self.position = 0  # # Pointer for inserting experiences
         self.priorities = np.zeros((capacity,), dtype=np.float32)  # Stores priority values
         self.alpha = alpha
@@ -68,12 +65,12 @@ class PrioritizedReplayBuffer:
 
     def update_priorities(self, indices, td_errors):
         """Updates the priorities of sampled transitions."""
-        self.priorities[indices] = td_errors + 0.01  # Avoid zero priority
+        self.priorities[indices] = td_errors + 1e-5  # Avoid zero priority
 
 
 class FlappyBirdAgent:
-    def __init__(self, input_dim, action_dim):
-        self.input_dim = input_dim
+    def __init__(self, state_dim, action_dim):
+        self.state_dim = state_dim
         self.action_dim = action_dim
         self.gamma = GAMMA
         self.lr = LEARNING_RATE
@@ -84,19 +81,20 @@ class FlappyBirdAgent:
 
         self.replay_buffer = PrioritizedReplayBuffer(MEMORY_SIZE)
 
-        self.policy_net = DeepQNetwork(input_dim, action_dim)
-        self.target_net = DeepQNetwork(input_dim, action_dim)
+        self.policy_net = DeepQNetwork(state_dim, action_dim)
+        self.target_net = DeepQNetwork(state_dim, action_dim)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=0.001)
         self.loss_fn = nn.MSELoss()
 
-    def choose_action(self, state):
+    def choose_action(self, state, steps_done=0):
         """
         Selects an action using an epsilon-greedy strategy.
         """
-        self.epsilon = max(self.epsilon_min, self.epsilon * 0.999)  # More exploration
+        self.epsilon = max(self.epsilon_min,
+                           self.epsilon * (self.epsilon_decay ** (1 / (1 + steps_done / 10000))))  # Slower decay
 
         if random.random() < self.epsilon:
             return torch.tensor([[torch.randint(self.action_dim, (1,))]], dtype=torch.long)
@@ -127,10 +125,9 @@ class FlappyBirdAgent:
             best_action = self.policy_net(next_states).argmax(dim=-1, keepdim=True)  # Select best action using policy_net
             next_q_values = self.target_net(next_states).gather(1, best_action).squeeze(1)  # Evaluate using target_net
             target_q_values = rewards + self.gamma * next_q_values
-            target_q_values = (target_q_values - target_q_values.mean()) / (target_q_values.std() + 1e-5)
 
         # Compute TD-Error
-        td_errors = abs(target_q_values - q_values)
+        td_errors = target_q_values - q_values
 
         # Update priorities
         self.replay_buffer.update_priorities(indices, td_errors.abs().detach().numpy())
