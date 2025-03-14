@@ -8,17 +8,15 @@ from configs.dqn_configs import *
 class DeepQNetwork(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(DeepQNetwork, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, 256)
-        self.fc4 = nn.Linear(256, output_dim)
+        self.fc1 = nn.Linear(input_dim, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, output_dim)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        x = torch.relu(self.fc3(x))
 
-        return self.fc4(x)
+        return self.fc3(x)
 
 class PrioritizedReplayBuffer:
     def __init__(self, capacity, alpha=0.6):
@@ -94,7 +92,7 @@ class FlappyBirdAgent:
         Selects an action using an epsilon-greedy strategy.
         """
         self.epsilon = max(self.epsilon_min,
-                           self.epsilon * (self.epsilon_decay ** (1 / (1 + steps_done / 10000))))  # Slower decay
+                           self.epsilon * (self.epsilon_decay ** (1 / (1 + steps_done / 5000))))  # Slower decay
 
         if random.random() < self.epsilon:
             return torch.tensor([[torch.randint(self.action_dim, (1,))]], dtype=torch.long)

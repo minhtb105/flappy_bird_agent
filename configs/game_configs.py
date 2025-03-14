@@ -13,7 +13,7 @@ BASE_HEIGHT = HEIGHT - BACKGROUND_HEIGHT
 BIRD_X = 50
 BIRD_Y = 300
 GRAVITY = 0.5
-JUMP_STRENGTH = -10  # Apply a jump force to the bird (negative value makes it move upwards)
+JUMP_STRENGTH = -8  # Apply a jump force to the bird (negative value makes it move upwards)
 
 # Pipe properties
 PIPE_WIDTH = 50
