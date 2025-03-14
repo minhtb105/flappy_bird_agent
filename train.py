@@ -34,7 +34,7 @@ if LOAD_MODEL and os.path.exists("policy_net.pth"):
     print("Loaded saved model.")
 
     # Reset epsilon so AI continues exploring instead of only exploiting past actions
-    agent.epsilon = max(agent.epsilon_min, agent.epsilon * 0.99995)  # Ensure some exploration
+    agent.epsilon = max(agent.epsilon_min, agent.epsilon * 0.995)  # Ensure some exploration
 
 if os.path.exists("replay_buffer.pkl"):
     with open("replay_buffer.pkl", "rb") as f:
@@ -107,8 +107,9 @@ for episode in range(NUM_EPISODES):
         print(f"AI has won {CONSECUTIVE_WINS_THRESHOLD} consecutive times! Training stopped.")
         break
 
-with open("replay_buffer.pkl", "wb") as f:
-    pickle.dump(list(agent.replay_buffer.memory), f)
+    if episode % 1000 == 0:
+        with open("replay_buffer.pkl", "wb") as f:
+            pickle.dump(list(agent.replay_buffer.memory), f)
 
 print("Training Completed!")
 

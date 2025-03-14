@@ -1,7 +1,9 @@
 import random
 import time
-import pygame
+
 import numpy as np
+import pygame
+
 from configs.game_configs import *
 
 
@@ -29,7 +31,7 @@ class FlappyBirdPygame:
         # Initialize pipes
         self.pipes = []
         self.create_initial_pipes()
-        
+
     # Function to show start images
     def show_start_images(self):
         for img_path in START_IMAGES:
@@ -103,8 +105,8 @@ class FlappyBirdPygame:
         # Normalize bird position
         bird_y_normalized = self.bird_y / HEIGHT
 
-        # Normalize velocity (assuming max speed is ±10)
-        velocity_normalized = self.velocity / 10
+        # Normalize velocity (max speed is ±10.5)
+        velocity_normalized = self.velocity / 11
 
         last_pipe = self.pipes[-1] if self.pipes else None
         next_pipe = None
@@ -172,10 +174,8 @@ class FlappyBirdPygame:
         self.move(action)
 
         # Penalize staying at the top or the bottom too long
-        if self.bird_y < 50 :
-            reward -= 0.05
-        elif self.bird_y > HEIGHT - BASE_HEIGHT - 50:
-            reward -= 0.04
+        if self.bird_y < 100 or self.bird_y > HEIGHT - BASE_HEIGHT - 100:
+            reward -= 0.5
 
         # Move pipes
         for pipe in self.pipes:
@@ -203,7 +203,20 @@ class FlappyBirdPygame:
 
             return reward, self.is_game_over, self.score  # Game over
 
-        reward += 0.1
+        # Find the pipe in front of the bird
+        next_pipe = None
+        for pipe in self.pipes:
+            if pipe['x'] + PIPE_WIDTH > self.bird_x:
+                next_pipe = pipe
+                break
+
+        # Encourage staying near the gap
+        if next_pipe is not None:
+            gap_center_y = next_pipe['top_height'] + next_pipe['gap'] / 2
+            distance_to_gap_center = abs(self.bird_y - gap_center_y)
+            reward += max(0, 1 - (
+                    distance_to_gap_center / (HEIGHT / 2)))  # The reward for being near the center of the empty space.
+
         self.update_ui()
         self.clock.tick(FPS)
 
