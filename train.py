@@ -34,7 +34,7 @@ if LOAD_MODEL and os.path.exists("policy_net.pth"):
     print("Loaded saved model.")
 
     # Reset epsilon so AI continues exploring instead of only exploiting past actions
-    agent.epsilon = max(agent.epsilon_min, agent.epsilon * 0.995)  # Ensure some exploration
+    agent.epsilon = max(agent.epsilon_min, agent.epsilon * 0.99)  # Ensure some exploration
 
 if os.path.exists("replay_buffer.pkl"):
     with open("replay_buffer.pkl", "rb") as f:

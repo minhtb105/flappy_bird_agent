@@ -8,9 +8,9 @@ from configs.dqn_configs import *
 class DeepQNetwork(nn.Module):
     def __init__(self, input_dim, output_dim):
         super(DeepQNetwork, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 32)
-        self.fc2 = nn.Linear(32, 32)
-        self.fc3 = nn.Linear(32, output_dim)
+        self.fc1 = nn.Linear(input_dim, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, output_dim)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
