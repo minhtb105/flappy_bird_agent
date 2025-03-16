@@ -1,9 +1,7 @@
 import random
 import time
-
 import numpy as np
 import pygame
-
 from configs.game_configs import *
 
 
