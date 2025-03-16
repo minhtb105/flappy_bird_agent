@@ -87,7 +87,7 @@ for episode in range(NUM_EPISODES):
             mean_scores.append(np.mean(scores[-window_size:]))
 
             # Check if AI lost (score = 0)
-            if score == 0:
+            if game_over or score == 0:
                 is_winning_episode = False  # AI lost
 
             print(f"Episode {episode + 1}: Score = {score}, Mean Score = {mean_scores[-1]:.2f}, Consecutive Wins = {consecutive_wins}")
