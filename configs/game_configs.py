@@ -1,6 +1,6 @@
 # Pygame setup
-WIDTH = 600
-HEIGHT = 600
+WIDTH = 288
+HEIGHT = 512
 FPS = 60
 
 # Background
@@ -12,14 +12,22 @@ BASE_HEIGHT = HEIGHT - BACKGROUND_HEIGHT
 # Bird properties
 BIRD_X = 50
 BIRD_Y = 300
+BIRD_WIDTH = 34
+BIRD_HEIGHT = 24
 GRAVITY = 0.5
 JUMP_STRENGTH = -8  # Apply a jump force to the bird (negative value makes it move upwards)
+BIRD_ANGLE = 0
 
 # Pipe properties
-PIPE_WIDTH = 50
+PIPE_WIDTH = 42
 PIPE_SPEED = 3
-PIPE_GAP_SIZE = 120  # Distance between two pipes
+PIPE_GAP_SIZE = 100  # Distance between two pipes
 PIPE_SPACING = 150
+
+NUM_RAYS = 180
+MAX_RAY_LENGTH = 50
+RAY_SPREAD = 179
+PLAYER_PRIVATE_ZONE = 30  # Size of agent's private zone
 
 # Asset paths
 ASSETS_PATH = "assets/"
