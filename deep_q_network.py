@@ -4,6 +4,8 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from configs.dqn_configs import *
+from configs.game_configs import NUM_RAYS
+
 
 class DeepQNetwork(nn.Module):
     def __init__(self, input_dim, output_dim):
@@ -73,14 +75,14 @@ class FlappyBirdAgent:
         self.gamma = GAMMA
         self.lr = LEARNING_RATE
         self.batch_size = BATCH_SIZE
-        self.epsilon = EPSILON_START
-        self.epsilon_min = EPSILON_MIN
-        self.epsilon_decay = EPSILON_DECAY
+        self.epsilon = TEMP_INIT
+        self.epsilon_min = TEMP_MIN
+        self.epsilon_decay = TEMP_DECAY
 
-        self.replay_buffer = PrioritizedReplayBuffer(MEMORY_SIZE)
+        self.replay_buffer = PrioritizedReplayBuffer(MAX_REPLAY_SIZE)
 
-        self.policy_net = DeepQNetwork(state_dim, action_dim)
-        self.target_net = DeepQNetwork(state_dim, action_dim)
+        self.policy_net = DeepQNetwork(input_size=NUM_RAYS + 1, num_actions=2)
+        self.target_net = DeepQNetwork(input_size=NUM_RAYS + 1, num_actions=2)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 

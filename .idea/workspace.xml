@@ -4,16 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
+    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="🔧 Add Private Zone Detection and Pipe Rectangles for Spatial Awareness&#10;&#10;- Implemented private zone logic based on bird dimensions and configurable radius (x)&#10;- Added top_rect and bottom_rect to Pipe class for accurate position tracking and collision distance&#10;- Updated ray casting and reward function to penalize if obstacles are within private zone radius&#10;- Slight reward bonus when private zone is clear to encourage safe flight paths">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/configs/dqn_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/dqn_configs.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/configs/game_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/game_configs.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/deep_q_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/deep_q_network.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/policy_net.pth" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/target_net.pth" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,6 +63,7 @@
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;F:/flappy_bird_agent&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -77,8 +76,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.25659.43" />
-        <option value="bundled-python-sdk-181015f7ab06-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.25659.43" />
+        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.26053.29" />
+        <option value="bundled-python-sdk-b1dbf8ef85a6-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.26053.29" />
       </set>
     </attachedChunks>
   </component>
@@ -94,7 +93,16 @@
       <workItem from="1741655792985" duration="26019000" />
       <workItem from="1741743525654" duration="23527000" />
       <workItem from="1741830868915" duration="14116000" />
-      <workItem from="1741917878667" duration="10866000" />
+      <workItem from="1741917878667" duration="20364000" />
+      <workItem from="1742003177919" duration="13229000" />
+      <workItem from="1742112811439" duration="8918000" />
+      <workItem from="1742173670076" duration="5632000" />
+      <workItem from="1742213492529" duration="588000" />
+      <workItem from="1742290184396" duration="148000" />
+      <workItem from="1744379490818" duration="3597000" />
+      <workItem from="1744481317818" duration="400000" />
+      <workItem from="1744482366831" duration="4033000" />
+      <workItem from="1744786709048" duration="8115000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
       <option name="closed" value="true" />
@@ -112,7 +120,31 @@
       <option name="project" value="LOCAL" />
       <updated>1741856852940</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Game Logic, State Representation, and Training Improvements&#10;&#10;- Updated scoring mechanism to award points when the bird passes a pipe.&#10;- Improved collision detection for accurate game state updates.&#10;- Enhanced state representation with bird position, velocity, and pipe positions.&#10;- Added features to encourage the bird to stay near the center of the gap.&#10;- Discussed and implemented replay buffer management for efficient training.&#10;- Enabled saving and loading of the replay buffer for flexible retraining.&#10;- Adjusted epsilon decay to balance exploration and exploitation.&#10;- Evaluated and fine-tuned the learning rate for optimal convergence.">
+      <option name="closed" value="true" />
+      <created>1741949057032</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1741949057032</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Game Logic, State Representation, and Training Improvements&#10;&#10;- Updated scoring mechanism to award points when the bird passes a pipe.&#10;- Improved collision detection for accurate game state updates.&#10;- Enhanced state representation with bird position, velocity, and pipe positions.&#10;- Added features to encourage the bird to stay near the center of the gap.&#10;- Discussed and implemented replay buffer management for efficient training.&#10;- Enabled saving and loading of the replay buffer for flexible retraining.&#10;- Adjusted epsilon decay to balance exploration and exploitation.&#10;- Evaluated and fine-tuned the learning rate for optimal convergence.">
+      <option name="closed" value="true" />
+      <created>1742113508067</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1742113508067</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Game Logic, State Representation, and Training Improvements&#10;&#10;- Updated scoring mechanism to award points when the bird passes a pipe.&#10;- Improved collision detection for accurate game state updates.&#10;- Enhanced state representation with bird position, velocity, and pipe positions.&#10;- Added features to encourage the bird to stay near the center of the gap.&#10;- Discussed and implemented replay buffer management for efficient training.&#10;- Enabled saving and loading of the replay buffer for flexible retraining.&#10;- Adjusted epsilon decay to balance exploration and exploitation.&#10;- Evaluated and fine-tuned the learning rate for optimal convergence.">
+      <option name="closed" value="true" />
+      <created>1742113820161</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1742113820161</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -132,7 +164,9 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="initial commit" />
     <MESSAGE value="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization" />
-    <option name="LAST_COMMIT_MESSAGE" value="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization" />
+    <MESSAGE value="Game Logic, State Representation, and Training Improvements&#10;&#10;- Updated scoring mechanism to award points when the bird passes a pipe.&#10;- Improved collision detection for accurate game state updates.&#10;- Enhanced state representation with bird position, velocity, and pipe positions.&#10;- Added features to encourage the bird to stay near the center of the gap.&#10;- Discussed and implemented replay buffer management for efficient training.&#10;- Enabled saving and loading of the replay buffer for flexible retraining.&#10;- Adjusted epsilon decay to balance exploration and exploitation.&#10;- Evaluated and fine-tuned the learning rate for optimal convergence." />
+    <MESSAGE value=" Add Private Zone Detection and Pipe Rectangles for Spatial Awareness&#10;&#10;- Implemented private zone logic based on bird dimensions and configurable radius (x)&#10;- Added top_rect and bottom_rect to Pipe class for accurate position tracking and collision distance&#10;- Updated ray casting and reward function to penalize if obstacles are within private zone radius&#10;- Slight reward bonus when private zone is clear to encourage safe flight paths" />
+    <option name="LAST_COMMIT_MESSAGE" value=" Add Private Zone Detection and Pipe Rectangles for Spatial Awareness&#10;&#10;- Implemented private zone logic based on bird dimensions and configurable radius (x)&#10;- Added top_rect and bottom_rect to Pipe class for accurate position tracking and collision distance&#10;- Updated ray casting and reward function to penalize if obstacles are within private zone radius&#10;- Slight reward bonus when private zone is clear to encourage safe flight paths" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -143,11 +177,6 @@
           <option name="timeStamp" value="1" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/game.py</url>
-          <line>154</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/deep_q_network.py</url>
           <line>65</line>
           <option name="timeStamp" value="6" />
@@ -156,11 +185,6 @@
           <url>file://$PROJECT_DIR$/train.py</url>
           <line>26</line>
           <option name="timeStamp" value="10" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/game.py</url>
-          <line>100</line>
-          <option name="timeStamp" value="12" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/train.py</url>
@@ -179,26 +203,31 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/configs/dqn_configs.py</url>
-          <line>2</line>
+          <line>3</line>
           <option name="timeStamp" value="16" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/configs/dqn_configs.py</url>
-          <line>1</line>
+          <line>2</line>
           <option name="timeStamp" value="17" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/configs/dqn_configs.py</url>
+          <line>23</line>
+          <option name="timeStamp" value="19" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/game.py</url>
-          <line>191</line>
-          <option name="timeStamp" value="18" />
+          <line>202</line>
+          <option name="timeStamp" value="29" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/flappy_bird_agent$deep_q_network.coverage" NAME="deep_q_network Coverage Results" MODIFIED="1741707135797" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/flappy_bird_agent$game.coverage" NAME="game Coverage Results" MODIFIED="1741747922989" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/flappy_bird_agent$game.coverage" NAME="game Coverage Results" MODIFIED="1744483979992" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/flappy_bird_agent$main.coverage" NAME="main Coverage Results" MODIFIED="1741169344332" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/flappy_bird_agent$train.coverage" NAME="train Coverage Results" MODIFIED="1741940145322" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/flappy_bird_agent$train.coverage" NAME="train Coverage Results" MODIFIED="1744381060970" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

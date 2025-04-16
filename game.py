@@ -1,3 +1,4 @@
+import math
 import random
 import time
 import numpy as np
@@ -5,30 +6,57 @@ import pygame
 from configs.game_configs import *
 
 
+class Pipe:
+    def __init__(self, x):
+        self.x = x
+        self.height = 0
+        self.top_pipe = pygame.image.load(PIPE_IMAGE)
+        self.bottom_pipe = pygame.image.load(PIPE_IMAGE)
+
+        """Randomizes pipe height and gap size while ensuring a valid gap."""
+        min_pipe_height = 50  # Minimum pipe height (prevents pipes from covering the whole screen)
+        max_pipe_height = BACKGROUND_HEIGHT - 200  # Ensure there's enough space for the gap
+
+        self.top_pipe_height = random.randint(min_pipe_height, max_pipe_height - PIPE_GAP_SIZE)
+        self.bottom_pipe_height = BACKGROUND_HEIGHT - self.top_pipe_height - PIPE_GAP_SIZE
+
+        self.top_rect = pygame.Rect(self.x, 0, PIPE_WIDTH, self.top_pipe_height)
+        self.bottom_rect = pygame.Rect(self.x, self.top_pipe_height + PIPE_GAP_SIZE, PIPE_WIDTH,
+                                       self.bottom_pipe_height)
+
+        self.passed = False
+
+    def move(self):
+        self.x -= PIPE_SPEED
+        self.top_pipe.x = self.x
+        self.bottom_pipe.x = self.x
+
+    def off_screen(self):
+        return self.x + PIPE_WIDTH < 0
+
 class FlappyBirdPygame:
     def __init__(self):
         # Pygame setup
         pygame.init()
-        self.is_game_over = False
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         pygame.display.set_caption("Flappy Bird Agent")
         self.font = pygame.font.Font('arial.ttf', 25)
+        self.is_game_over = False
 
         # Load assets
         self.game_over_icon = pygame.image.load(GAME_OVER_IMAGE)
         self.background = pygame.transform.scale(pygame.image.load(BACKGROUND_IMAGE), (WIDTH, BACKGROUND_HEIGHT))
         self.base = pygame.transform.scale(pygame.image.load(BASE_IMAGE), (WIDTH, BASE_HEIGHT))
         self.bird = pygame.image.load(BIRD_IMAGE)
-        self.pipe_top = pygame.image.load(PIPE_IMAGE)
-        self.pipe_bottom = pygame.image.load(PIPE_IMAGE)
+
+        self.velocity = 0
+        self.gravity = GRAVITY
+        self.bird_angle = BIRD_ANGLE
+        self.pipes = []
 
         self.show_start_images()
         self.reset()
-
-        # Initialize pipes
-        self.pipes = []
-        self.create_initial_pipes()
 
     # Function to show start images
     def show_start_images(self):
@@ -44,114 +72,131 @@ class FlappyBirdPygame:
         self.bird_x, self.bird_y = BIRD_X, BIRD_Y
         self.velocity = 0
         self.pipe_x = WIDTH
-        self.pipes = []
-        self.create_initial_pipes()
+        self.pipes = [Pipe(PIPE_SPACING + (i + 1.5)) for i in range(3)]
         self.is_game_over = False
         self.score = 0
 
-    def create_initial_pipes(self):
-        """Create the initial columns with equal spacing."""
-        for i in range(4):  # Assume creating 4 initial columns.
-            self.create_new_pipe((i + 1.5) * PIPE_SPACING)
+    def update_bird(self):
+        self.velocity += self.gravity
+        self.bird_y += self.velocity
 
-    # function to generate a new pipe height
-    def create_new_pipe(self, x_position):
-        """Randomizes pipe height and gap size while ensuring a valid gap."""
-        min_pipe_height = 50  # Minimum pipe height (prevents pipes from covering the whole screen)
-        max_pipe_height = BACKGROUND_HEIGHT - 200  # Ensure there's enough space for the gap
+        # Pitch angle logic
+        if self.velocity < 0:
+            self.bird_angle = math.radians(45)
+        else:
+            self.bird_angle = max(math.radians(-90), self.bird_angle - 0.05)
 
-        min_gap_size = 100  # Prevents gaps that are too small
-        max_gap_size = 150  # Prevents gaps that are too large
+    def cast_rays(self):
+        ray_distances = []
+        angle_step = RAY_SPREAD / (NUM_RAYS - 1)
 
-        pipe_gap = random.randint(min_gap_size, max_gap_size)  # Enforce safe gap size
-        pipe_top_height = random.randint(min_pipe_height, max_pipe_height - pipe_gap)
-        pipe_bottom_height = BACKGROUND_HEIGHT - pipe_top_height - pipe_gap
+        for i in range(NUM_RAYS):
+            angle_deg = -RAY_SPREAD / 2 + i * angle_step
+            angle_rad = math.radians(angle_deg)
+            dx = math.cos(angle_rad)
+            dy = math.sin(angle_rad)
 
-        new_pipe = {
-            'x': x_position,
-            'top_height': pipe_top_height,
-            'bottom_height': pipe_bottom_height,
-            'gap': pipe_gap,
-            "passed": False,
-        }
+            # Loop to simulate the ray extending outward up to MAX_RAY_LENGTH pixels
+            for length in range(1, MAX_RAY_LENGTH + 1):
+                # Calculate the current point of the ray based on bird's position and direction (dx, dy)
+                x = int(self.bird_x + dx * length)
+                y = int(self.bird_y + dy * length)
 
-        self.pipes.append(new_pipe)
+                # If the point is outside the screen boundary, stop the ray
+                if x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT:
+                    break
+
+                # Get the color of the pixel at the current (x, y) position on the screen
+                pixel = self.screen.get_at((x, y))
+
+                # If the pixel is estimated to be a green obstacle (like a pipe), stop the ray
+                r, g, b, _ = pixel
+                if g > 150 and r < 100 and b < 100:
+                    break
+
+                ray_distances.append(length / MAX_RAY_LENGTH)
+
+        return ray_distances
+
+    def get_state(self):
+        """
+            Returns the normalized game state as a feature vector.
+            """
+
+        ray_inputs = self.cast_rays()
+        velocity_norm = self.velocity / 10
+
+        return np.array(ray_inputs + [velocity_norm], dtype=np.float32)
+
+    def draw_rays(self):
+        angle_step = RAY_SPREAD / (NUM_RAYS - 1)
+        for i in range(NUM_RAYS):
+            angle_deg = -RAY_SPREAD / 2 + i * angle_step
+            angle_rad = math.radians(angle_deg)
+            dx = math.cos(angle_rad)
+            dy = math.sin(angle_rad)
+
+            end_x = int(self.bird_x + dx * MAX_RAY_LENGTH)
+            end_y = int(self.bird_y + dy * MAX_RAY_LENGTH)
+            pygame.draw.line(self.screen, (255, 0, 0), (self.bird_x, self.bird_y), (end_x, end_y), 1)
 
     def is_collision(self):
         # Create mask for bird and pipe
         bird_mask = pygame.mask.from_surface(self.bird)
 
         for pipe in self.pipes:
-            resized_pipe_top = pygame.transform.scale(self.pipe_top, (PIPE_WIDTH, pipe['top_height']))
-            resized_pipe_bottom = pygame.transform.scale(self.pipe_bottom, (PIPE_WIDTH, pipe['bottom_height']))
-            pipe_top_mask = pygame.mask.from_surface(resized_pipe_top)
-            pipe_bottom_mask = pygame.mask.from_surface(resized_pipe_bottom)
+            resized_top_pipe = pygame.transform.scale(pipe.top_pipe, (PIPE_WIDTH, pipe['top_height']))
+            resized_bottom_pipe = pygame.transform.scale(pipe.bottom_pipe, (PIPE_WIDTH, pipe['bottom_height']))
+            top_pipe_mask = pygame.mask.from_surface(resized_top_pipe)
+            bottom_pipe_mask = pygame.mask.from_surface(resized_bottom_pipe)
 
             # Calculate offset between bird and pipe
             offset_top = (pipe['x'] - self.bird_x, 0 - self.bird_y)
             offset_bottom = (pipe['x'] - self.bird_x, BACKGROUND_HEIGHT - pipe['bottom_height'] - self.bird_y)
 
-            if bird_mask.overlap(pipe_top_mask, offset_top) or bird_mask.overlap(pipe_bottom_mask, offset_bottom):
+            if bird_mask.overlap(top_pipe_mask, offset_top) or bird_mask.overlap(bottom_pipe_mask, offset_bottom):
                 return True
 
         return False
 
-    def get_state(self):
+    @staticmethod
+    def compute_private_zone_radius():
         """
-            Returns the normalized game state as a feature vector.
-            """
-        # Normalize bird position
-        bird_y_normalized = self.bird_y / HEIGHT
+        Compute the radius of the bird's private zone based on bird size and hyperparameter PLAYER_PRIVATE_ZONE.
+        Returns:
+            float: radius of the private zone
+        """
+        private_zone_radius = (max(BIRD_WIDTH, BIRD_HEIGHT) + PLAYER_PRIVATE_ZONE) / 2
 
-        # Normalize velocity (max speed is ±10.5)
-        velocity_normalized = self.velocity / 11
+        return private_zone_radius
 
-        last_pipe = self.pipes[-1] if self.pipes else None
-        next_pipe = None
-        next_next_pipe = None
+    def draw_private_zone(self):
+        """
+        Draw the private zone of the bird as a transparent circle (for debugging).
+        """
+        radius = self.compute_private_zone_radius()
+        pygame.draw.circle(self.screen, (255, 0, 0), (int(self.bird_x), int(self.bird_y)), int(radius), 1)
 
-        for i, pipe in enumerate(self.pipes):
-            if pipe['x'] > self.bird_x:
-                next_pipe = pipe
-                if i + 1 < len(self.pipes):
-                    next_next_pipe = self.pipes[i + 1]
-                break
+    def check_private_zone_reward(self):
+        """
+        Reward or penalize based on whether any obstacle is inside the bird's private zone.
 
-        # If there is no column in front, use the default value.
-        last_pipe_x = last_top_pipe_y = last_bottom_pipe_y = 1.0
-        next_pipe_x = next_top_pipe_y = next_bottom_pipe_y = 1.0
-        next_next_pipe_x = next_next_top_pipe_y = next_next_bottom_pipe_y = 1.0
+        Returns:
+            float: reward (positive if safe, negative if too close)
+        """
+        radius = self.compute_private_zone_radius()
+        bird_center = pygame.Vector2(self.bird_x, self.bird_y)
 
-        if last_pipe:
-            last_pipe_x = last_pipe['x'] / WIDTH
-            last_top_pipe_y = last_pipe['top_height'] / HEIGHT
-            last_bottom_pipe_y = (HEIGHT - last_pipe['bottom_height']) / HEIGHT
+        for pipe in self.pipes:
+            # Top pipe
+            if bird_center.distance_to(pipe.top_rect.center) < radius:
+                return -0.5
 
-        if next_pipe:
-            next_pipe_x = next_pipe['x'] / WIDTH
-            next_top_pipe_y = next_pipe['top_height'] / HEIGHT
-            next_bottom_pipe_y = (HEIGHT - next_pipe['bottom_height']) / HEIGHT
+            # Bottom pipe
+            if bird_center.distance_to(pipe.bottom_rect.center) < radius:
+                return -0.5
 
-        if next_next_pipe:
-            next_next_pipe_x = next_next_pipe['x'] / WIDTH
-            next_next_top_pipe_y = next_next_pipe['top_height'] / HEIGHT
-            next_next_bottom_pipe_y = (HEIGHT - next_next_pipe['bottom_height']) / HEIGHT
-
-        state = [
-            last_pipe_x,
-            last_top_pipe_y,
-            last_bottom_pipe_y,
-            next_pipe_x,
-            next_top_pipe_y,
-            next_bottom_pipe_y,
-            next_next_pipe_x,
-            next_next_top_pipe_y,
-            next_next_bottom_pipe_y,
-            bird_y_normalized,
-            velocity_normalized,
-        ]
-
-        return np.array(state)
+        return 0.1
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -171,13 +216,15 @@ class FlappyBirdPygame:
         # Move bird
         self.move(action)
 
-        # Penalize staying at the top or the bottom too long
-        if self.bird_y < 100 or self.bird_y > HEIGHT - BASE_HEIGHT - 100:
+        # Penalize staying at the top too long
+        if self.bird_y < 50:
             reward -= 0.5
 
         # Move pipes
         for pipe in self.pipes:
             pipe['x'] -= PIPE_SPEED
+
+        reward += self.check_private_zone_reward()
 
         # Check if bird has passed a pipe
         for pipe in self.pipes:
@@ -189,7 +236,7 @@ class FlappyBirdPygame:
         # Remove pipes that have moved out of the screen and create new ones
         if self.pipes and self.pipes[0]['x'] < -PIPE_WIDTH:
             self.pipes.pop(0)
-            self.create_new_pipe(self.pipes[-1]['x'] + PIPE_SPACING)
+            self.pipes.append(Pipe(self.pipes[-1]['x'] + PIPE_SPACING))
 
         # Collision detection
         if self.is_collision():
@@ -201,19 +248,7 @@ class FlappyBirdPygame:
 
             return reward, self.is_game_over, self.score  # Game over
 
-        # Find the pipe in front of the bird
-        next_pipe = None
-        for pipe in self.pipes:
-            if pipe['x'] + PIPE_WIDTH > self.bird_x:
-                next_pipe = pipe
-                break
-
-        # Encourage staying near the gap
-        if next_pipe is not None:
-            gap_center_y = next_pipe['top_height'] + next_pipe['gap'] / 2
-            distance_to_gap_center = abs(self.bird_y - gap_center_y)
-            reward += max(0, 1 - (
-                    distance_to_gap_center / (HEIGHT / 2)))  # The reward for being near the center of the empty space.
+        reward += 0.1  # Small reward for "still alive"
 
         self.update_ui()
         self.clock.tick(FPS)
@@ -223,10 +258,11 @@ class FlappyBirdPygame:
     def move(self, action):
         if np.array_equal(action, [0, 1]):
             self.velocity = JUMP_STRENGTH
+            self.bird = pygame.transform.rotate(pygame.image.load(BIRD_IMAGE), 45)
+        elif np.array_equal(action, [1, 0]):
+            self.bird = pygame.transform.rotate(pygame.image.load(BIRD_IMAGE), -90)
 
-        # Apply gravity
-        self.velocity += GRAVITY
-        self.bird_y += self.velocity
+        self.update_bird()
 
         # Prevent bird flying too high or falling below base
         if self.bird_y > HEIGHT - BASE_HEIGHT - self.bird.get_height():
@@ -242,13 +278,15 @@ class FlappyBirdPygame:
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.base, (0, 500))
         self.screen.blit(self.bird, (self.bird_x, self.bird_y))
+        self.draw_private_zone()
 
         for pipe in self.pipes:
-            resized_pipe_top = pygame.transform.scale(self.pipe_top, (PIPE_WIDTH, pipe['top_height']))
-            resized_pipe_bottom = pygame.transform.scale(self.pipe_bottom, (PIPE_WIDTH, pipe['bottom_height']))
-            self.screen.blit(resized_pipe_top, (pipe['x'], 0))
-            self.screen.blit(resized_pipe_bottom, (pipe['x'], BACKGROUND_HEIGHT - pipe['bottom_height']))
+            resized_top_pipe = pygame.transform.scale(pipe.top_pipe, (PIPE_WIDTH, pipe.pipe_top_height))
+            resized_bottom_pipe = pygame.transform.scale(pipe.bottom_pipe, (PIPE_WIDTH, pipe.pipe_bottom_height))
+            self.screen.blit(resized_top_pipe, (pipe['x'], 0))
+            self.screen.blit(resized_bottom_pipe, (pipe['x'], BACKGROUND_HEIGHT - pipe['bottom_height']))
 
+        self.draw_rays()
         text = self.font.render("Score: " + str(self.score), True, (255, 255, 255))
         self.screen.blit(text, [0, 0])
         pygame.display.flip()
