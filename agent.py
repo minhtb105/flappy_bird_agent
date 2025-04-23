@@ -1,10 +1,9 @@
-import random 
-import torch
-import torch.nn as nn
-import torch.optim as optim
+import random
 import numpy as np
+import torch
+import torch.optim as optim
+
 from configs.dqn_configs import *
-from configs.game_configs import NUM_RAYS
 from dueling_motion_transformers import DuelingMotionTransformer
 from replay_buffer import PrioritizedReplayBuffer
 
@@ -52,9 +51,9 @@ class FlappyBirdAgent:
         """
         if self.insert_count % self.samples_per_insert != 0:
             return
-        
+
         if len(self.replay_buffer.memory) < self.batch_size:
-            return   # Skip training if not enough samples
+            return  # Skip training if not enough samples
 
         experiences, indices, weights = self.replay_buffer.sample()
         states, actions, rewards, next_states = zip(*experiences)
@@ -67,9 +66,10 @@ class FlappyBirdAgent:
         # Compute current Q-values
         q_values = self.policy_net(states).gather(1, actions).squeeze(1)
 
-        # Compute target Q-values using target network
+        # Compute target Q-values using the target network
         with torch.no_grad():
-            best_action = self.policy_net(next_states).argmax(dim=-1, keepdim=True)  # Select best action using policy_net
+            best_action = self.policy_net(next_states).argmax(dim=-1,
+                                                              keepdim=True)  # Select the best action using policy_net
             next_q_values = self.target_net(next_states).gather(1, best_action).squeeze(1)  # Evaluate using target_net
             target_q_values = rewards + self.gamma * next_q_values
 

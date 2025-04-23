@@ -1,10 +1,6 @@
-import random
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import numpy as np
 from configs.dqn_configs import *
-from configs.game_configs import NUM_RAYS
 
 
 class LightweightAttention(nn.Module):
