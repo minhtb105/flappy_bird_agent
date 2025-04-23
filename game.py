@@ -54,6 +54,7 @@ class FlappyBirdPygame:
         self.gravity = GRAVITY
         self.bird_angle = BIRD_ANGLE
         self.pipes = []
+        self.ray_distances = np.zeros(NUM_RAYS)
 
         self.show_start_images()
         self.reset()
@@ -86,37 +87,43 @@ class FlappyBirdPygame:
         else:
             self.bird_angle = max(math.radians(-90), self.bird_angle - 0.05)
 
-    def cast_rays(self):
-        ray_distances = []
-        angle_step = RAY_SPREAD / (NUM_RAYS - 1)
+    def cast_rays(self, fov=np.pi/2, max_distance=MAX_RAY_LENGTH):
+        angles = np.linspace(-fov/2, fov/2, NUM_RAYS)
 
-        for i in range(NUM_RAYS):
-            angle_deg = -RAY_SPREAD / 2 + i * angle_step
-            angle_rad = math.radians(angle_deg)
-            dx = math.cos(angle_rad)
-            dy = math.sin(angle_rad)
-
-            # Loop to simulate the ray extending outward up to MAX_RAY_LENGTH pixels
-            for length in range(1, MAX_RAY_LENGTH + 1):
-                # Calculate the current point of the ray based on bird's position and direction (dx, dy)
-                x = int(self.bird_x + dx * length)
-                y = int(self.bird_y + dy * length)
-
-                # If the point is outside the screen boundary, stop the ray
-                if x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT:
+        self.ray_distances = np.ones(NUM_RAYS) * max_distance
+        
+        for i, angle in enumerate(angles):
+            ray_dx = np.cos(angle)
+            ray_dy = np.sin(angle)
+            
+            for d in np.linspace(0, max_distance, int(max_distance)):
+                test_x = self.bird_x + ray_dx * d
+                test_y = self.bird_y + ray_dy * d
+                
+                if test_y <= 0 or test_y >= BACKGROUND_HEIGHT:
+                    self.ray_distances[i] = d
                     break
-
-                # Get the color of the pixel at the current (x, y) position on the screen
-                pixel = self.screen.get_at((x, y))
-
-                # If the pixel is estimated to be a green obstacle (like a pipe), stop the ray
-                r, g, b, _ = pixel
-                if g > 150 and r < 100 and b < 100:
+                
+                hit_pipe = False
+                for pipe in self.pipes:
+                    pipe_x = pipe.x
+                    gap_top = pipe.top_pipe_height
+                    gap_bottom = BACKGROUND_HEIGHT - pipe.bottom_pipe_height
+                    pipe_width = PIPE_WIDTH
+                    
+                    if pipe_x <= test_x <= pipe_x + pipe_width:
+                        if test_y <= gap_top or test_y >= gap_bottom:
+                            self.ray_distances[i] = d
+                            hit_pipe = True
+                            break
+            
+                if hit_pipe:
                     break
-
-                ray_distances.append(length / MAX_RAY_LENGTH)
-
-        return ray_distances
+        
+        self.ray_distances /= max_distance
+        self.ray_distances = np.clip(self.ray_distances, 0, 1)
+        
+        return self.ray_distances
 
     def get_state(self):
         """
@@ -126,33 +133,36 @@ class FlappyBirdPygame:
         ray_inputs = self.cast_rays()
         velocity_norm = self.velocity / 10
 
-        return np.array(ray_inputs + [velocity_norm], dtype=np.float32)
+        return np.append(ray_inputs, velocity_norm).astype(np.float32)
 
-    def draw_rays(self):
-        angle_step = RAY_SPREAD / (NUM_RAYS - 1)
-        for i in range(NUM_RAYS):
-            angle_deg = -RAY_SPREAD / 2 + i * angle_step
-            angle_rad = math.radians(angle_deg)
-            dx = math.cos(angle_rad)
-            dy = math.sin(angle_rad)
+    def draw_rays(self, fov=np.pi/2, max_distance=MAX_RAY_LENGTH):
+        num_rays = len(self.ray_distances)
+        angles = np.linspace(-fov/2, fov/2, num_rays)
+        
+        for i, angle in enumerate(angles):
+            ray_length = self.ray_distances[i] * max_distance
 
-            end_x = int(self.bird_x + dx * MAX_RAY_LENGTH)
-            end_y = int(self.bird_y + dy * MAX_RAY_LENGTH)
-            pygame.draw.line(self.screen, (255, 0, 0), (self.bird_x, self.bird_y), (end_x, end_y), 1)
+            ray_dx = np.cos(angle)
+            ray_dy = np.sin(angle)
+
+            end_x = self.bird_x + ray_dx * ray_length
+            end_y = self.bird_y + ray_dy * ray_length
+
+            pygame.draw.line(self.screen, (0, 255, 0), (self.bird_x, self.bird_y), (end_x, end_y), 1)
 
     def is_collision(self):
         # Create mask for bird and pipe
         bird_mask = pygame.mask.from_surface(self.bird)
 
         for pipe in self.pipes:
-            resized_top_pipe = pygame.transform.scale(pipe.top_pipe, (PIPE_WIDTH, pipe['top_height']))
-            resized_bottom_pipe = pygame.transform.scale(pipe.bottom_pipe, (PIPE_WIDTH, pipe['bottom_height']))
+            resized_top_pipe = pygame.transform.scale(pipe.top_pipe, (PIPE_WIDTH, pipe.top_pipe_height))
+            resized_bottom_pipe = pygame.transform.scale(pipe.bottom_pipe, (PIPE_WIDTH, pipe.bottom_pipe_height))
             top_pipe_mask = pygame.mask.from_surface(resized_top_pipe)
             bottom_pipe_mask = pygame.mask.from_surface(resized_bottom_pipe)
 
             # Calculate offset between bird and pipe
-            offset_top = (pipe['x'] - self.bird_x, 0 - self.bird_y)
-            offset_bottom = (pipe['x'] - self.bird_x, BACKGROUND_HEIGHT - pipe['bottom_height'] - self.bird_y)
+            offset_top = (pipe.x - self.bird_x, 0 - self.bird_y)
+            offset_bottom = (pipe.x - self.bird_x, BACKGROUND_HEIGHT - pipe.bottom_pipe_height - self.bird_y)
 
             if bird_mask.overlap(top_pipe_mask, offset_top) or bird_mask.overlap(bottom_pipe_mask, offset_bottom):
                 return True
@@ -222,21 +232,21 @@ class FlappyBirdPygame:
 
         # Move pipes
         for pipe in self.pipes:
-            pipe['x'] -= PIPE_SPEED
+            pipe.x -= PIPE_SPEED
 
         reward += self.check_private_zone_reward()
 
         # Check if bird has passed a pipe
         for pipe in self.pipes:
-            if pipe['x'] + PIPE_WIDTH < self.bird_x and not pipe.get('passed', False):
+            if pipe.x + PIPE_WIDTH < self.bird_x and not pipe.passed == False:
                 self.score += 1  # Gain points when passing pipe
                 reward += 1  # Big reward when passing a pipe
-                pipe['passed'] = True  # Mark this pipe as passed
+                pipe.passed = True  # Mark this pipe as passed
 
         # Remove pipes that have moved out of the screen and create new ones
-        if self.pipes and self.pipes[0]['x'] < -PIPE_WIDTH:
+        if self.pipes and self.pipes[0].x < -PIPE_WIDTH:
             self.pipes.pop(0)
-            self.pipes.append(Pipe(self.pipes[-1]['x'] + PIPE_SPACING))
+            self.pipes.append(Pipe(self.pipes[-1].x + PIPE_SPACING))
 
         # Collision detection
         if self.is_collision():
@@ -281,10 +291,10 @@ class FlappyBirdPygame:
         self.draw_private_zone()
 
         for pipe in self.pipes:
-            resized_top_pipe = pygame.transform.scale(pipe.top_pipe, (PIPE_WIDTH, pipe.pipe_top_height))
-            resized_bottom_pipe = pygame.transform.scale(pipe.bottom_pipe, (PIPE_WIDTH, pipe.pipe_bottom_height))
-            self.screen.blit(resized_top_pipe, (pipe['x'], 0))
-            self.screen.blit(resized_bottom_pipe, (pipe['x'], BACKGROUND_HEIGHT - pipe['bottom_height']))
+            resized_top_pipe = pygame.transform.scale(pipe.top_pipe, (PIPE_WIDTH, pipe.top_pipe_height))
+            resized_bottom_pipe = pygame.transform.scale(pipe.bottom_pipe, (PIPE_WIDTH, pipe.bottom_pipe_height))
+            self.screen.blit(resized_top_pipe, (pipe.x, 0))
+            self.screen.blit(resized_bottom_pipe, (pipe.x, BACKGROUND_HEIGHT - pipe.bottom_pipe_height))
 
         self.draw_rays()
         text = self.font.render("Score: " + str(self.score), True, (255, 255, 255))

@@ -6,12 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="🔧 Add Private Zone Detection and Pipe Rectangles for Spatial Awareness&#10;&#10;- Implemented private zone logic based on bird dimensions and configurable radius (x)&#10;- Added top_rect and bottom_rect to Pipe class for accurate position tracking and collision distance&#10;- Updated ray casting and reward function to penalize if obstacles are within private zone radius&#10;- Slight reward bonus when private zone is clear to encourage safe flight paths">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/dqn_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/dqn_configs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/game_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/game_configs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deep_q_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/deep_q_network.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deep_q_network.py" beforeDir="false" afterPath="$PROJECT_DIR$/dueling_motion_transformers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/policy_net.pth" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/target_net.pth" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,7 +45,6 @@
   &quot;associatedIndex&quot;: 2
 }</component>
   <component name="ProjectId" id="2tqftT6NaFy4v1ldoekkjEhTo45" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -76,8 +73,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.26053.29" />
-        <option value="bundled-python-sdk-b1dbf8ef85a6-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.26053.29" />
+        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-PY-251.23774.444" />
+        <option value="bundled-python-sdk-890ed5b35930-d9c5bdb153f4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.23774.444" />
       </set>
     </attachedChunks>
   </component>
@@ -102,7 +99,11 @@
       <workItem from="1744379490818" duration="3597000" />
       <workItem from="1744481317818" duration="400000" />
       <workItem from="1744482366831" duration="4033000" />
-      <workItem from="1744786709048" duration="8115000" />
+      <workItem from="1744786709048" duration="8157000" />
+      <workItem from="1744895040497" duration="2941000" />
+      <workItem from="1744901872345" duration="870000" />
+      <workItem from="1744983684759" duration="455000" />
+      <workItem from="1745033393085" duration="4000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
       <option name="closed" value="true" />
@@ -144,7 +145,15 @@
       <option name="project" value="LOCAL" />
       <updated>1742113820161</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="🔧 Add Private Zone Detection and Pipe Rectangles for Spatial Awareness&#10;&#10;- Implemented private zone logic based on bird dimensions and configurable radius (x)&#10;- Added top_rect and bottom_rect to Pipe class for accurate position tracking and collision distance&#10;- Updated ray casting and reward function to penalize if obstacles are within private zone radius&#10;- Slight reward bonus when private zone is clear to encourage safe flight paths">
+      <option name="closed" value="true" />
+      <created>1744815646115</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1744815646115</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -172,12 +181,12 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/deep_q_network.py</url>
+          <url>file://$PROJECT_DIR$/dueling_motion_transformers.py</url>
           <line>126</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/deep_q_network.py</url>
+          <url>file://$PROJECT_DIR$/dueling_motion_transformers.py</url>
           <line>65</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
@@ -192,12 +201,12 @@
           <option name="timeStamp" value="13" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/deep_q_network.py</url>
+          <url>file://$PROJECT_DIR$/dueling_motion_transformers.py</url>
           <line>112</line>
           <option name="timeStamp" value="14" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/deep_q_network.py</url>
+          <url>file://$PROJECT_DIR$/dueling_motion_transformers.py</url>
           <line>115</line>
           <option name="timeStamp" value="15" />
         </line-breakpoint>
@@ -228,6 +237,6 @@
     <SUITE FILE_PATH="coverage/flappy_bird_agent$deep_q_network.coverage" NAME="deep_q_network Coverage Results" MODIFIED="1741707135797" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/flappy_bird_agent$game.coverage" NAME="game Coverage Results" MODIFIED="1744483979992" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/flappy_bird_agent$main.coverage" NAME="main Coverage Results" MODIFIED="1741169344332" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
-    <SUITE FILE_PATH="coverage/flappy_bird_agent$train.coverage" NAME="train Coverage Results" MODIFIED="1744381060970" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/flappy_bird_agent$train.coverage" NAME="train Coverage Results" MODIFIED="1744815519417" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

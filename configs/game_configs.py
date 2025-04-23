@@ -26,7 +26,6 @@ PIPE_SPACING = 150
 
 NUM_RAYS = 180
 MAX_RAY_LENGTH = 50
-RAY_SPREAD = 179
 PLAYER_PRIVATE_ZONE = 30  # Size of agent's private zone
 
 # Asset paths

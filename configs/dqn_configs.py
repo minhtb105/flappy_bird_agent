@@ -9,7 +9,7 @@ GAMMA = 0.99  # Discount factor
 TAU = 0.005
 NUM_LAYERS = 2
 FF_MULT = 4  # Multiplier of MLP block dimension
-NUM_HEADS = 6  # num of attention heads
+NUM_HEADS = 4  # num of attention heads
 GLOBAL_CLIP_NORM = 1  # Globally normalized clipping of gradient
 WEIGHT_DECAY = 0.0001  # Weight decay for AdamW optimizer
 
@@ -22,3 +22,4 @@ TEMP_DECAY = 0.999999  # Decay of Boltzmann temperature
 
 # Replay Memory
 MAX_REPLAY_SIZE = 1000000
+SAMPLES_PER_INSERT_RATIO = 32

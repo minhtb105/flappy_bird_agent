@@ -3,7 +3,10 @@ import torch
 import pygame
 import os
 import pickle
-from deep_q_network import FlappyBirdAgent
+from collections import deque
+from agent import FlappyBirdAgent 
+from configs.dqn_configs import *
+from configs.game_configs import NUM_RAYS
 from game import FlappyBirdPygame
 from visualize_training import plot
 
@@ -18,13 +21,12 @@ CONSECUTIVE_WINS_THRESHOLD = 100  # Stop training if AI wins 100 consecutive epi
 
 # Initialize game and agent
 game = FlappyBirdPygame()
-input_shape = 11
+state_dim = NUM_RAYS + 1
 num_actions = 2  # [Do nothing, Jump]
-agent = FlappyBirdAgent(input_shape, num_actions)
+agent = FlappyBirdAgent(state_dim, num_actions)
 
 # Target Network Update Configurations
-TARGET_UPDATE = 3000  # Hard update every3,000 steps
-tau = 0.05  # Soft update factor
+TARGET_UPDATE = 3000  # Hard update every 3,000 steps
 steps_done = 0  # Step counter
 
 # Load model if available
@@ -49,22 +51,27 @@ consecutive_wins = 0  # Counter for consecutive wins
 
 for episode in range(NUM_EPISODES):
     state = game.get_state()
+    state_seq = deque([state] * FRAME_STACK, maxlen=FRAME_STACK)
     total_reward = 0
     steps = 0
     is_winning_episode = True  # Assume the AI wins unless it loses
 
     # game loop
     while not game.is_game_over and steps < MAX_STEPS_PER_EPISODE:
-        state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
-
-        action = agent.choose_action(state_tensor).item()
+        state_array = np.array(state_seq)
+        state_tensor = torch.tensor(state_array, dtype=torch.float32).unsqueeze(0) # (1, seq_length, state_dim)
+        
+        action = agent.choose_action(state_tensor)
         action_one_hot = [0, 1] if action == 1 else [1, 0]
 
         reward, game_over, score = game.step(action_one_hot)
         next_state = game.get_state()
+        state_seq.append(next_state)
+        next_state_array = np.array(state_seq)
 
         if not TEST_MODE:
-            agent.replay_buffer.store_transition(state, action, reward, next_state)
+            agent.replay_buffer.store_transition(state_array, action, reward, next_state_array)
+            agent.insert_count += 1
             agent.train()
 
         state = next_state
@@ -74,7 +81,7 @@ for episode in range(NUM_EPISODES):
 
         # Soft Update: Gradually update target network weights
         for target_param, policy_param in zip(agent.target_net.parameters(), agent.policy_net.parameters()):
-            target_param.data.copy_(tau * policy_param.data + (1 - tau) * target_param.data)
+            target_param.data.copy_(TAU * policy_param.data + (1 - TAU) * target_param.data)
 
         # Save model every `SAVE_INTERVAL` steps
         if steps_done % SAVE_INTERVAL == 0:
