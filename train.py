@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import pygame
 import os
-import pickle
 from collections import deque
 from agent import FlappyBirdAgent 
 from configs.dqn_configs import *
@@ -38,11 +37,10 @@ if LOAD_MODEL and os.path.exists("policy_net.pth"):
     # Reset epsilon so AI continues exploring instead of only exploiting past actions
     agent.epsilon = max(agent.epsilon_min, agent.epsilon * 0.99)  # Ensure some exploration
 
-if os.path.exists("replay_buffer.pkl"):
-    with open("replay_buffer.pkl", "rb") as f:
-        agent.memory = pickle.load(f)
-
-    print(f"Loaded replay buffer with {len(agent.memory)} experiences.")
+if os.path.exists("replay_buffer.pt"):
+    buffer_data = torch.load("replay_buffer.pt")
+    agent.replay_buffer.load_from_torch_dict(buffer_data)
+    print(f"Loaded replay buffer with {len(agent.replay_buffer.memory)} experiences.")
 
 scores = []
 mean_scores = []
@@ -59,7 +57,7 @@ for episode in range(NUM_EPISODES):
     # game loop
     while not game.is_game_over and steps < MAX_STEPS_PER_EPISODE:
         state_array = np.array(state_seq)
-        state_tensor = torch.tensor(state_array, dtype=torch.float32).unsqueeze(0) # (1, seq_length, state_dim)
+        state_tensor = torch.tensor(state_array, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
         
         action = agent.choose_action(state_tensor)
         action_one_hot = [0, 1] if action == 1 else [1, 0]
@@ -114,12 +112,13 @@ for episode in range(NUM_EPISODES):
         print(f"AI has won {CONSECUTIVE_WINS_THRESHOLD} consecutive times! Training stopped.")
         break
 
-    if episode % 1000 == 0:
-        with open("replay_buffer.pkl", "wb") as f:
-            pickle.dump(list(agent.replay_buffer.memory), f)
+    if episode % 1000 == 0 and episode != 0:
+        # Save replay buffer every 1000 episodes
+        buffer_dict = agent.replay_buffer.to_torch_dict()
+        torch.save(buffer_dict, "replay_buffer.pt")
+        print("Replay buffer saved.")
+
 
 print("Training Completed!")
-
 plot(scores, mean_scores)
-
 pygame.quit()
