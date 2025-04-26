@@ -55,17 +55,11 @@ class FlappyBirdAgent:
         if len(self.replay_buffer.memory) < self.batch_size:
             return  # Skip training if not enough samples
 
-        experiences, indices, weights = self.replay_buffer.sample()
-        states, actions, rewards, next_states = zip(*experiences)
-
-        states = torch.tensor(np.array(states), dtype=torch.float32)
-        actions = torch.tensor(np.array(actions), dtype=torch.long).unsqueeze(1)
-        rewards = torch.tensor(np.array(rewards), dtype=torch.float32)
-        next_states = torch.tensor(np.array(next_states), dtype=torch.float32)
-
+        states, actions, rewards, next_states, indices, weights = self.replay_buffer.sample()
+        
         # Compute current Q-values
-        q_values = self.policy_net(states).gather(1, actions).squeeze(1)
-
+        q_values = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        
         # Compute target Q-values using the target network
         with torch.no_grad():
             best_action = self.policy_net(next_states).argmax(dim=-1,

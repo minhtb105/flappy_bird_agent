@@ -4,13 +4,13 @@ HEIGHT = 512
 FPS = 60
 
 # Background
-BACKGROUND_HEIGHT = 500
+BACKGROUND_HEIGHT = 412
 
 # Base
 BASE_HEIGHT = HEIGHT - BACKGROUND_HEIGHT
 
 # Bird properties
-BIRD_X = 50
+BIRD_X = 24
 BIRD_Y = 300
 BIRD_WIDTH = 34
 BIRD_HEIGHT = 24
@@ -21,8 +21,10 @@ BIRD_ANGLE = 0
 # Pipe properties
 PIPE_WIDTH = 42
 PIPE_SPEED = 3
-PIPE_GAP_SIZE = 100  # Distance between two pipes
-PIPE_SPACING = 150
+PIPE_GAP_SIZE = 100  # Distance between top pipe and bottom pipe
+PIPE_START_OFFSET = 140 # Offset for the first pipe
+PIPE_SPACING = 100
+NUM_PIPES = 3  # Number of pipes on the screen at a time
 
 NUM_RAYS = 180
 MAX_RAY_LENGTH = 50

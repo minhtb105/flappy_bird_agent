@@ -1,6 +1,7 @@
 import math
 import random
 import time
+import torch
 import numpy as np
 import pygame
 from configs.game_configs import *
@@ -15,7 +16,7 @@ class Pipe:
 
         """Randomizes pipe height and gap size while ensuring a valid gap."""
         min_pipe_height = 50  # Minimum pipe height (prevents pipes from covering the whole screen)
-        max_pipe_height = BACKGROUND_HEIGHT - 200  # Ensure there's enough space for the gap
+        max_pipe_height = BACKGROUND_HEIGHT - 100  # Ensure there's enough space for the gap
 
         self.top_pipe_height = random.randint(min_pipe_height, max_pipe_height - PIPE_GAP_SIZE)
         self.bottom_pipe_height = BACKGROUND_HEIGHT - self.top_pipe_height - PIPE_GAP_SIZE
@@ -52,7 +53,6 @@ class FlappyBirdPygame:
 
         self.velocity = 0
         self.gravity = GRAVITY
-        self.bird_angle = BIRD_ANGLE
         self.pipes = []
         self.ray_distances = np.zeros(NUM_RAYS)
 
@@ -73,19 +73,9 @@ class FlappyBirdPygame:
         self.bird_x, self.bird_y = BIRD_X, BIRD_Y
         self.velocity = 0
         self.pipe_x = WIDTH
-        self.pipes = [Pipe(PIPE_SPACING + (i + 1.5)) for i in range(3)]
+        self.pipes = [Pipe(PIPE_START_OFFSET + i * PIPE_SPACING) for i in range(NUM_PIPES)]
         self.is_game_over = False
         self.score = 0
-
-    def update_bird(self):
-        self.velocity += self.gravity
-        self.bird_y += self.velocity
-
-        # Pitch angle logic
-        if self.velocity < 0:
-            self.bird_angle = math.radians(45)
-        else:
-            self.bird_angle = max(math.radians(-90), self.bird_angle - 0.05)
 
     def cast_rays(self, fov=np.pi/2, max_distance=MAX_RAY_LENGTH):
         angles = np.linspace(-fov/2, fov/2, NUM_RAYS)
@@ -131,7 +121,10 @@ class FlappyBirdPygame:
             """
 
         ray_inputs = self.cast_rays()
-        velocity_norm = self.velocity / 10
+        
+        v_min = JUMP_STRENGTH
+        v_max = 10
+        velocity_norm = np.clip((self.velocity - v_min) / (v_max - v_min))
 
         return np.append(ray_inputs, velocity_norm).astype(np.float32)
 
@@ -268,11 +261,9 @@ class FlappyBirdPygame:
     def move(self, action):
         if np.array_equal(action, [0, 1]):
             self.velocity = JUMP_STRENGTH
-            self.bird = pygame.transform.rotate(pygame.image.load(BIRD_IMAGE), 45)
-        elif np.array_equal(action, [1, 0]):
-            self.bird = pygame.transform.rotate(pygame.image.load(BIRD_IMAGE), -90)
 
-        self.update_bird()
+        self.velocity += self.gravity
+        self.bird_y += self.velocity
 
         # Prevent bird flying too high or falling below base
         if self.bird_y > HEIGHT - BASE_HEIGHT - self.bird.get_height():
