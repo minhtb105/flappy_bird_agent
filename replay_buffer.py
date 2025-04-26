@@ -26,10 +26,11 @@ class PrioritizedReplayBuffer:
             self.memory.append((state, action, reward, next_state))
         else:
             self.memory[self.position] = (state, action, reward, next_state)
-
+             
         self.priorities[self.position] = max_priority  # assign max priority
-        self.position = (self.position + 1) % self.capacity  # circular buffer
 
+        self.position = (self.position + 1) % self.capacity  # circular buffer
+        
     def sample(self, batch_size=BATCH_SIZE, beta=0.4):
         """Samples a batch using priority-based probability distribution."""
         if len(self.memory) == 0:
@@ -41,12 +42,47 @@ class PrioritizedReplayBuffer:
         indices = np.random.choice(len(self.memory), batch_size, p=probabilities)  # sample indices
         experiences = [self.memory[idx] for idx in indices]
 
+        states, actions, rewards, next_states = zip(*experiences)
+
+        states = torch.tensor(np.stack(states), dtype=torch.float32)  # (batch_size, FRAME_STACK, state_dim)
+        next_states = torch.tensor(np.stack(next_states), dtype=torch.float32)  # (batch_size, FRAME_STACK, state_dim)
+        actions = torch.tensor(actions, dtype=torch.long)  # (batch_size,)
+        rewards = torch.tensor(rewards, dtype=torch.float32)  # (batch_size,)
+        
         # Compute importance-sampling weights to reduce bias
         weights = (len(self.memory) * probabilities[indices]) ** (-beta)
         weights /= weights.max()  # Normalize weights
-
-        return experiences, indices, torch.tensor(weights, dtype=torch.float32)
+        weights = torch.tensor(weights, dtype=torch.float32)
+        
+        return states, actions, rewards, next_states, indices, weights
 
     def update_priorities(self, indices, td_errors):
         """Updates the priorities of sampled transitions."""
         self.priorities[indices] = abs(td_errors) + 0.001  # Avoid zero priority
+
+    def to_torch_dict(self):
+        states, actions, rewards, next_states = zip(*[(s, a, r, ns) for s, a, r, ns in self.memory])
+        return {
+            'states': torch.tensor(np.stack(states), dtype=torch.float32),
+            'actions': torch.tensor(actions, dtype=torch.long),
+            'rewards': torch.tensor(rewards, dtype=torch.float32),
+            'next_states': torch.tensor(np.stack(next_states), dtype=torch.float32),
+            'priorities': torch.tensor(self.priorities, dtype=torch.float32),
+            'position': self.position
+        }
+        
+    def load_from_torch_dict(self, data):
+        self.memory.clear()
+        self.position = data['position']
+        self.priorities = data['priorities'].numpy()
+
+        for i in range(len(data['states'])):
+            transition = (
+                data['states'][i].numpy(),
+                data['actions'][i].item(),
+                data['rewards'][i].item(),
+                data['next_states'][i].numpy(),
+                self.priorities
+            )
+            self.memory.append(transition)
+        
