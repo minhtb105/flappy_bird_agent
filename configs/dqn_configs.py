@@ -29,11 +29,11 @@ SAMPLES_PER_INSERT_RATIO = 32
 
 # Training configurations
 LOAD_MODEL = True  # Load from a saved checkpoint if available
-SAVE_INTERVAL = 10000  # Save the model every 10000 steps
+SAVE_INTERVAL = 10000  # Save the model every 10.000 steps
 TEST_MODE = False  # If True, AI only plays without training
 NUM_EPISODES = 10000  # Increased number of episodes for longer training
 MAX_STEPS_PER_EPISODE = 10000000  # Maximum steps per episode
 CONSECUTIVE_WINS_THRESHOLD = 100  # Stop training if AI wins 100 consecutive episodes
-TRACK_EPSILON_DECAY_INTERVAL = 100  # Track epsilon decay for plotting
-SAVE_REPLAY_BUFFER_INTERVAL = 1000  # Save replay buffer every 1000 episodes
+TRACK_TEMPERATURE_DECAY_INTERVAL = 100  # Track the Boltzmann temperature decay interval for plotting
+SAVE_REPLAY_BUFFER_INTERVAL = 1000  # Save the replay buffer every 1000 episodes
 VISUALIZATION_INTERVAL = 1000  # Interval for visualization

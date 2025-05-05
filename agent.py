@@ -1,7 +1,6 @@
 import random
 import torch
 import torch.optim as optim
-
 from configs.dqn_configs import *
 from dueling_motion_transformers import DuelingMotionTransformer
 from replay_buffer import PrioritizedReplayBuffer
@@ -14,9 +13,9 @@ class FlappyBirdAgent:
         self.gamma = GAMMA
         self.lr = LEARNING_RATE
         self.batch_size = BATCH_SIZE
-        self.epsilon = TEMP_INIT
-        self.epsilon_min = TEMP_MIN
-        self.epsilon_decay = TEMP_DECAY
+        self.temp = TEMP_INIT  # Initial temperature for Boltzmann exploration
+        self.temp_min = TEMP_MIN  # Minimal Boltzmann temperature
+        self.temp_decay = TEMP_DECAY  # Decay of Boltzmann temperature
 
         self.insert_count = 0
         self.samples_per_insert = SAMPLES_PER_INSERT_RATIO
@@ -45,16 +44,27 @@ class FlappyBirdAgent:
      
     def choose_action(self, state, steps_done=0):
         """
-        Selects an action using an epsilon-greedy strategy.
+        Selects an action using Boltzmann Exploration (softmax over Q-values).
         """
-        self.epsilon = max(self.epsilon_min,
-                           self.epsilon * (self.epsilon_decay ** (1 / (1 + steps_done / 5000))))  # Slower decay
+        # Get the Q-values for all actions from the policy network
+        with torch.no_grad():
+            q_values = self.policy_net(state).squeeze(0)  # shape: [action_dim]
 
-        if random.random() < self.epsilon:
-            return torch.tensor([[torch.randint(self.action_dim, (1,))]], dtype=torch.long)
-        else:
-            with torch.no_grad():
-                return self.policy_net(state).max(1)[1].item()
+        # Apply Boltzmann exploration
+        exp_q_values = torch.exp((q_values / self.temp))
+        probs = exp_q_values / exp_q_values.sum() + 1e-6  # Normalize to get a probability distribution
+
+        # Sample action from the distribution
+        action = torch.multinomial(probs, num_samples=1).item()  # Sample one action based on the probabilities
+
+        return action
+
+    def update_temperature(self):
+        """
+        Update the temperature for Boltzmann exploration.
+        The temperature decays over time, but never goes below `temp_min`.
+        """
+        self.temp = max(self.temp_min, self.temp * self.temp_decay)
 
     def train(self):
         """

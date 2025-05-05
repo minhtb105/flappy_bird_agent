@@ -29,8 +29,17 @@ def plot(scores, save_path="plots/scores.png", label="Score", title="Training Pr
 def plot_attention_heatmap(attn_weights, title="Attention Heatmap", save_path="plots/attention_weights.png"):
     if isinstance(attn_weights, torch.Tensor):
         attn_weights = attn_weights.detach().cpu().numpy()
+        
+    # Remove the batch dimension if present
+    if attn_weights.ndim() == 4:  # (batch_size, num_heads, seq_len, seq_len)
+        attn_weights = attn_weights[0]  
+        
+    assert attn_weights.ndim == 3, "Attention weights should be 3D (num_heads, seq_len, seq_len) or 2D (seq_len, seq_len)."
+    if attn_weights.ndim == 2:
+        attn_weights = attn_weights[np.newaxis, ...]
+        
+    num_heads = attn_weights.shape[0] 
 
-    num_heads = attn_weights.shape[0]
     fig, axs = plt.subplots(1, num_heads, figsize=(5 * num_heads, 5))
 
     if num_heads == 1:
@@ -38,6 +47,7 @@ def plot_attention_heatmap(attn_weights, title="Attention Heatmap", save_path="p
 
     for i in range(num_heads):
         ax = axs[i]
+        assert attn_weights[i].ndim == 2, "Each attention weight should be 2D (seq_len, seq_len)"
         im = ax.imshow(attn_weights[i], cmap='viridis')
         ax.set_title(f"{title} - Head {i}")
         ax.set_xlabel("Input timestep")
@@ -54,12 +64,12 @@ def plot_attention_heatmap(attn_weights, title="Attention Heatmap", save_path="p
     plt.close()
 
 
-def plot_epsilon_decay(epsilons, title="Epsilon Decay Over Episodes", save_path="plots/epsilon_decay.png"):
-    if isinstance(epsilons, torch.Tensor):
-        epsilons = epsilons.detach().cpu().numpy()
+def plot_temperature_decay(temperatures, title="Temperature Decay Over Episodes", save_path="plots/temperature_decay.png"):
+    if isinstance(temperatures, torch.Tensor):
+        temperatures = temperatures.detach().cpu().numpy()
     
     plt.figure(figsize=(10, 5))
-    plt.plot([TRACK_EPSILON_DECAY_INTERVAL * i for i in range(len(epsilons))], epsilons)
+    plt.plot([TRACK_EPSILON_DECAY_INTERVAL * i for i in range(len(temperatures))], temperatures)
     plt.title(title)
     plt.xlabel("Episode")
     plt.ylabel("Epsilon")

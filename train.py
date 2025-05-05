@@ -1,5 +1,3 @@
-import numpy as np
-import torch
 import pygame
 import os
 from collections import deque
@@ -26,7 +24,7 @@ if LOAD_MODEL and os.path.exists("models/policy_net.pth"):
     print("Loaded saved model.")
 
     # Reset epsilon so AI continues exploring instead of only exploiting past actions
-    agent.epsilon = max(agent.epsilon_min, agent.epsilon * TEMP_DECAY_RESET)  # Ensure some exploration
+    agent.temp = max(agent.temp_min, agent.temp * TEMP_DECAY_RESET)  # Ensure some exploration
 
 if os.path.exists("replay_buffer.pt"):
     buffer_data = torch.load("models/replay_buffer.pt")
@@ -36,9 +34,9 @@ if os.path.exists("replay_buffer.pt"):
 scores = []
 mean_scores = []
 max_score = 0
-window_size = 50  # Moving average window for mean score
+window_size = 50  # Moving the average window for mean score
 consecutive_wins = 0  # Counter for consecutive wins
-epsilons = []  # Store epsilon values for plotting
+temperatures = []  # Store Boltzmann temperature values for plotting
 
 for episode in range(NUM_EPISODES):
     state = game.get_state()
@@ -52,13 +50,16 @@ for episode in range(NUM_EPISODES):
         state_array = np.array(state_seq)
         state_tensor = torch.tensor(state_array, dtype=torch.float32).unsqueeze(0)  # Add batch dimension
         
-        action = agent.choose_action(state_tensor)
+        with torch.no_grad():
+            action = agent.choose_action(state_tensor)
         action_one_hot = [0, 1] if action == 1 else [1, 0]
 
         reward, game_over, score = game.step(action_one_hot)
         next_state = game.get_state()
         state_seq.append(next_state)
         next_state_array = np.array(state_seq)
+
+        agent.update_temperature()
 
         if not TEST_MODE:
             agent.replay_buffer.store_transition(state_array, action, reward, next_state_array)
@@ -109,25 +110,29 @@ for episode in range(NUM_EPISODES):
         break
 
     if episode % SAVE_REPLAY_BUFFER_INTERVAL == 0 and episode != 0:
-        # Save replay buffer every 1000 episodes
+        # Save the replay buffer every 1000 episodes
         buffer_dict = agent.replay_buffer.to_torch_dict()
         torch.save(buffer_dict, "models/replay_buffer.pt")
         print("Replay buffer saved.")
 
-    if episode % TRACK_EPSILON_DECAY_INTERVAL == 0:
-        epsilons.append(agent.epsilon)
+    if episode % TRACK_TEMPERATURE_DECAY_INTERVAL == 0:
+        temperatures.append(agent.temp)
 
     if episode % VISUALIZATION_INTERVAL == 0 and episode != 0:
         print(max_score)
-        plot(scores[::window_size], save_path="plots/scores.png", label="Score", title="Score per Episode")
-        plot(mean_scores, save_path="plots/mean_scores.png", label="Mean Score", title="Mean Score per Episode")
-        plot_epsilon_decay(epsilons) 
-        plot_attention_heatmap(agent.policy_net.get_attention_weights()) 
-        plot_histogram_td_errors(agent.td_errors)
-        plot_losses(agent.losses, window_size=window_size)
-        plot_grad_norms(agent.grad_norms)
-        plot_q_values_distribution(agent.q_values)
-        plot_q_stats(agent.max_q_values, agent.min_q_values)
+
+        vis_folder = f"plots/episode_{episode}"
+        os.makedirs(vis_folder, exist_ok=True)
+
+        plot(scores[::window_size], f"{vis_folder}/scores.png", "Score", "Score per Episode")
+        plot(mean_scores, f"{vis_folder}/mean_scores.png", "Mean Score", "Mean Score per Episode")
+        plot_temperature_decay(temperatures, f"{vis_folder}/temperature_decay.png")
+        plot_attention_heatmap(agent.policy_net.get_attention_weights(), f"{vis_folder}/attention_weights.png")
+        plot_histogram_td_errors(agent.td_errors, f"{vis_folder}/td_errors.png")
+        plot_losses(agent.losses, window_size, f"{vis_folder}/losses.png")
+        plot_grad_norms(agent.grad_norms, f"{vis_folder}/grad_norms.png")
+        plot_q_values_distribution(agent.q_values, f"{vis_folder}/q_values_dist.png")
+        plot_q_stats(agent.max_q_values, agent.min_q_values, f"{vis_folder}/q_stats.png")
 
 print("Training Completed!")
 pygame.quit()

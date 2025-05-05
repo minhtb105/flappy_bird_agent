@@ -71,7 +71,7 @@ class DuelingMotionTransformer(nn.Module):
         self.feedforward = nn.Sequential(
             nn.LayerNorm(d_model),
             nn.Linear(d_model, d_model * 4),
-            nn.GELU(),
+            nn.ReLU(),
             nn.Linear(d_model * 4, d_model),    
         )
 

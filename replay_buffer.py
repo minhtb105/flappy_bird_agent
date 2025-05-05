@@ -37,7 +37,13 @@ class PrioritizedReplayBuffer:
             return None  # Avoid error if buffer is empty
 
         priorities = self.priorities[: len(self.memory)] ** self.alpha
-        probabilities = priorities / priorities.sum()
+        
+        priorities = np.nan_to_num(priorities, nan=1.0, posinf=1.0, neginf=0.0)
+        total = priorities.sum()
+        if total == 0 or np.isnan(total):
+            probabilities = np.ones_like(priorities) / len(priorities)
+        else:
+            probabilities = priorities / total
 
         indices = np.random.choice(len(self.memory), batch_size, p=probabilities)  # sample indices
         experiences = [self.memory[idx] for idx in indices]
@@ -58,7 +64,9 @@ class PrioritizedReplayBuffer:
 
     def update_priorities(self, indices, td_errors):
         """Updates the priorities of sampled transitions."""
-        self.priorities[indices] = abs(td_errors) + 0.001  # Avoid zero priority
+        td_errors = np.clip(td_errors, -10, 10)  # Clip TD errors to avoid extreme values
+        td_errors = np.nan_to_num(td_errors, nan=1.0, posinf=10.0, neginf=-10.0)
+        self.priorities[indices] = abs(td_errors) + 1e-3 # Avoid zero priority
 
     def to_torch_dict(self):
         states, actions, rewards, next_states = zip(*[(s, a, r, ns) for s, a, r, ns in self.memory])
