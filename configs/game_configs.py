@@ -25,7 +25,7 @@ JUMP_STRENGTH = -8  # Apply a jump force to the bird (negative value makes it mo
 BIRD_ANGLE = 0
 
 # Pipe properties
-PIPE_WIDTH = 42
+PIPE_WIDTH = 52
 PIPE_SPEED = 3
 PIPE_GAP_SIZE = 100  # Distance between top pipe and bottom pipe
 PIPE_START_OFFSET = 140 # Offset for the first pipe
@@ -34,7 +34,7 @@ NUM_PIPES = 3  # Number of pipes on the screen at a time
 
 NUM_RAYS = 180
 MAX_RAY_LENGTH = 50
-PLAYER_PRIVATE_ZONE = 30  # Size of agent's private zone
+PLAYER_PRIVATE_ZONE = 26  # Size of agent's private zone
 
 # Asset paths
 ASSETS_PATH = "assets/"

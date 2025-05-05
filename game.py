@@ -166,7 +166,7 @@ class FlappyBirdPygame:
             float: reward (positive if safe, negative if too close)
         """
         radius = self.compute_private_zone_radius()
-        bird_center = pygame.Vector2(self.bird_x, self.bird_y)
+        bird_center = pygame.Vector2(self.bird_x + BIRD_WIDTH / 2, self.bird_y + BIRD_HEIGHT / 2)
 
         for pipe in self.pipes:
             # Top pipe
@@ -272,7 +272,9 @@ class FlappyBirdPygame:
         Draw the private zone of the bird as a transparent circle (for debugging).
         """
         radius = self.compute_private_zone_radius()
-        pygame.draw.circle(self.screen, (255, 0, 0), (int(self.bird_x), int(self.bird_y)), int(radius), 1)
+        center_x = self.bird_x + BIRD_WIDTH // 2
+        center_y = self.bird_y + BIRD_HEIGHT // 2
+        pygame.draw.circle(self.screen, (255, 0, 0), (int(center_x), int(center_y)), int(radius), 1)
 
     def update_ui(self):
         self.screen.fill("white")

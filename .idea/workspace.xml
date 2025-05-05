@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="perf(buffer): improve performance by storing replay buffer as torch tensors">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="feat: add visualization utilities for debugging">
       <change beforePath="$PROJECT_DIR$/policy_net.pth" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/target_net.pth" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/visualize_training.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -104,6 +104,7 @@
       <workItem from="1745033393085" duration="4000" />
       <workItem from="1745404984440" duration="268000" />
       <workItem from="1745640369277" duration="316000" />
+      <workItem from="1746415519808" duration="272000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
       <option name="closed" value="true" />
@@ -193,7 +194,31 @@
       <option name="project" value="LOCAL" />
       <updated>1745640604910</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="feat: add multi-head attention to encoder">
+      <option name="closed" value="true" />
+      <created>1746415596835</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1746415596835</updated>
+    </task>
+    <task id="LOCAL-00013" summary="small changes">
+      <option name="closed" value="true" />
+      <created>1746415668141</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1746415668141</updated>
+    </task>
+    <task id="LOCAL-00014" summary="feat: add visualization utilities for debugging">
+      <option name="closed" value="true" />
+      <created>1746415786155</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1746415786155</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -219,24 +244,27 @@
     <MESSAGE value="feat(replay_buffer): add to_torch_dict and load_from_torch_dict for torch-based saving" />
     <MESSAGE value="chore: switch buffer persistence to torch.save and torch.load" />
     <MESSAGE value="perf(buffer): improve performance by storing replay buffer as torch tensors" />
-    <option name="LAST_COMMIT_MESSAGE" value="perf(buffer): improve performance by storing replay buffer as torch tensors" />
+    <MESSAGE value="feat: add multi-head attention to encoder" />
+    <MESSAGE value="small changes" />
+    <MESSAGE value="feat: add visualization utilities for debugging" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: add visualization utilities for debugging" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/dueling_motion_transformers.py</url>
-          <line>19</line>
+          <line>22</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/train.py</url>
-          <line>28</line>
+          <line>19</line>
           <option name="timeStamp" value="10" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/train.py</url>
-          <line>58</line>
+          <line>51</line>
           <option name="timeStamp" value="13" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -251,12 +279,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/configs/dqn_configs.py</url>
-          <line>23</line>
+          <line>26</line>
           <option name="timeStamp" value="19" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/game.py</url>
-          <line>205</line>
+          <line>183</line>
           <option name="timeStamp" value="29" />
         </line-breakpoint>
       </breakpoints>
