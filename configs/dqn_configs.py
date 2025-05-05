@@ -5,6 +5,8 @@ LEARNING_RATE = 0.0003
 BATCH_SIZE = 256
 EMBED_DIM = 128
 GAMMA = 0.99  # Discount factor
+# Target Network Update Configurations
+TARGET_UPDATE = 3000  # Hard update every 3,000 steps
 
 TAU = 0.005
 NUM_LAYERS = 2
@@ -19,7 +21,19 @@ FRAME_STACK = 12 # Size of short-term (episodic) memory
 TEMP_INIT = 0.5  #  Initial Boltzmann temperature for exploration
 TEMP_MIN = 0.01   # Minimum Boltzmann temperature
 TEMP_DECAY = 0.999999  # Decay of Boltzmann temperature
+TEMP_DECAY_RESET = 0.99 
 
 # Replay Memory
 MAX_REPLAY_SIZE = 1000000
 SAMPLES_PER_INSERT_RATIO = 32
+
+# Training configurations
+LOAD_MODEL = True  # Load from a saved checkpoint if available
+SAVE_INTERVAL = 10000  # Save the model every 10000 steps
+TEST_MODE = False  # If True, AI only plays without training
+NUM_EPISODES = 10000  # Increased number of episodes for longer training
+MAX_STEPS_PER_EPISODE = 10000000  # Maximum steps per episode
+CONSECUTIVE_WINS_THRESHOLD = 100  # Stop training if AI wins 100 consecutive episodes
+TRACK_EPSILON_DECAY_INTERVAL = 100  # Track epsilon decay for plotting
+SAVE_REPLAY_BUFFER_INTERVAL = 1000  # Save replay buffer every 1000 episodes
+VISUALIZATION_INTERVAL = 1000  # Interval for visualization

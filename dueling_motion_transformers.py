@@ -4,33 +4,48 @@ from configs.dqn_configs import *
 
 
 class LightweightAttention(nn.Module):
-    def __init__(self, d_model, n_heads):
+    def __init__(self, d_model, num_heads=NUM_HEADS):
         super(LightweightAttention, self).__init__()
-        assert d_model % n_heads == 0, "d_model must be divisible by n_heads"
+        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.head_dim = d_model // num_heads
         
-        self.n_heads = n_heads
-        self.head_dim = d_model // n_heads
+        self.query = nn.Linear(d_model, d_model)
+        self.key = nn.Linear(d_model, d_model)
+        self.value = nn.Linear(d_model, d_model)
         
-        self.query = nn.Linear(d_model, d_model // 2)
-        self.key = nn.Linear(d_model, d_model // 2)
-        self.value = nn.Linear(d_model, d_model // 2)
-        
-        self.out_proj = nn.Linear(d_model // 2, d_model)
-
-        # Add LayerNorm inside attention block
+        self.out_proj = nn.Linear(d_model, d_model)
         self.norm = nn.LayerNorm(d_model)
+        
+        self.last_attention_probs = None
 
     def forward(self, x):
+        B, S, D = x.size()  # B: batch size, S: sequence length, D: embedding dimension
+        assert D == self.d_model, f"Expected input dimension {self.d_model}, but got {D}"
+        
         residual = x  # Save input for skip connection
         
+        # Linear projections
         Q = self.query(x)
         K = self.key(x)
         V = self.value(x)
         
+        # Split into multiple heads
+        Q = Q.view(B, S, self.num_heads, self.head_dim).transpose(1, 2)  # (B, num_heads, S, head_dim)
+        K = K.view(B, S, self.num_heads, self.head_dim).transpose(1, 2)
+        V = V.view(B, S, self.num_heads, self.head_dim).transpose(1, 2)
+        
+        # Scaled dot-product attention
         attn_scores = torch.matmul(Q, K.transpose(-2, -1)) / (self.head_dim ** 0.5)
         attn_probs = torch.softmax(attn_scores, dim=-1)
+        self.last_attention_probs = attn_probs.detach()  # store for visualization
         
         attn_output = torch.matmul(attn_probs, V)
+        
+        # Concatenate heads
+        attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.d_model)  # (B, S, D)
+        
         attn_output = self.out_proj(attn_output)
         
         # Add & Norm
@@ -50,15 +65,14 @@ class DuelingMotionTransformer(nn.Module):
         # Learnable positional embeddings
         self.positional_encoding = nn.Parameter(torch.randn(seq_length, d_model))
         
-        self.attention_layer = LightweightAttention(d_model, n_heads)
+        self.attention_layer = LightweightAttention(d_model)
 
         # Feedforward block + LayerNorm
         self.feedforward = nn.Sequential(
             nn.LayerNorm(d_model),
             nn.Linear(d_model, d_model * 4),
             nn.GELU(),
-            nn.Linear(d_model * 4, d_model),
-            nn.LayerNorm(d_model)    
+            nn.Linear(d_model * 4, d_model),    
         )
 
         # Dueling head
@@ -98,3 +112,5 @@ class DuelingMotionTransformer(nn.Module):
 
         return q_values
     
+    def get_attention_weights(self):
+        return self.attention_layer.last_attention_probs
