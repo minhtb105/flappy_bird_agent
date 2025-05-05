@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="🔧 Fix tensor conversion performance and correct choose_action usage&#10;&#10;(Improve tensor creation speed by using np.array, remove redundant .item() call after choosing action.)">
-      <change beforePath="$PROJECT_DIR$/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dueling_motion_transformers.py" beforeDir="false" afterPath="$PROJECT_DIR$/dueling_motion_transformers.py" afterDir="false" />
+    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="perf(buffer): improve performance by storing replay buffer as torch tensors">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/policy_net.pth" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/target_net.pth" beforeDir="false" />
     </list>
@@ -103,7 +102,8 @@
       <workItem from="1744901872345" duration="870000" />
       <workItem from="1744983684759" duration="455000" />
       <workItem from="1745033393085" duration="4000" />
-      <workItem from="1745404984440" duration="202000" />
+      <workItem from="1745404984440" duration="268000" />
+      <workItem from="1745640369277" duration="316000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
       <option name="closed" value="true" />
@@ -161,7 +161,39 @@
       <option name="project" value="LOCAL" />
       <updated>1745405092492</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="🔧 Fix tensor conversion performance and correct choose_action usage&#10;&#10;(Improve tensor creation speed by using np.array, remove redundant .item() call after choosing action.)">
+      <option name="closed" value="true" />
+      <created>1745405257236</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1745405257236</updated>
+    </task>
+    <task id="LOCAL-00009" summary="🔧feat(replay_buffer): add to_torch_dict and load_from_torch_dict for torch-based saving">
+      <option name="closed" value="true" />
+      <created>1745640534653</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1745640534653</updated>
+    </task>
+    <task id="LOCAL-00010" summary="chore: switch buffer persistence to torch.save and torch.load">
+      <option name="closed" value="true" />
+      <created>1745640573142</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1745640573142</updated>
+    </task>
+    <task id="LOCAL-00011" summary="perf(buffer): improve performance by storing replay buffer as torch tensors">
+      <option name="closed" value="true" />
+      <created>1745640604910</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1745640604910</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -184,7 +216,10 @@
     <MESSAGE value="Game Logic, State Representation, and Training Improvements&#10;&#10;- Updated scoring mechanism to award points when the bird passes a pipe.&#10;- Improved collision detection for accurate game state updates.&#10;- Enhanced state representation with bird position, velocity, and pipe positions.&#10;- Added features to encourage the bird to stay near the center of the gap.&#10;- Discussed and implemented replay buffer management for efficient training.&#10;- Enabled saving and loading of the replay buffer for flexible retraining.&#10;- Adjusted epsilon decay to balance exploration and exploitation.&#10;- Evaluated and fine-tuned the learning rate for optimal convergence." />
     <MESSAGE value=" Add Private Zone Detection and Pipe Rectangles for Spatial Awareness&#10;&#10;- Implemented private zone logic based on bird dimensions and configurable radius (x)&#10;- Added top_rect and bottom_rect to Pipe class for accurate position tracking and collision distance&#10;- Updated ray casting and reward function to penalize if obstacles are within private zone radius&#10;- Slight reward bonus when private zone is clear to encourage safe flight paths" />
     <MESSAGE value=" Fix tensor conversion performance and correct choose_action usage&#10;&#10;(Improve tensor creation speed by using np.array, remove redundant .item() call after choosing action.)" />
-    <option name="LAST_COMMIT_MESSAGE" value=" Fix tensor conversion performance and correct choose_action usage&#10;&#10;(Improve tensor creation speed by using np.array, remove redundant .item() call after choosing action.)" />
+    <MESSAGE value="feat(replay_buffer): add to_torch_dict and load_from_torch_dict for torch-based saving" />
+    <MESSAGE value="chore: switch buffer persistence to torch.save and torch.load" />
+    <MESSAGE value="perf(buffer): improve performance by storing replay buffer as torch tensors" />
+    <option name="LAST_COMMIT_MESSAGE" value="perf(buffer): improve performance by storing replay buffer as torch tensors" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -196,12 +231,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/train.py</url>
-          <line>29</line>
+          <line>28</line>
           <option name="timeStamp" value="10" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/train.py</url>
-          <line>60</line>
+          <line>58</line>
           <option name="timeStamp" value="13" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -221,7 +256,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/game.py</url>
-          <line>212</line>
+          <line>205</line>
           <option name="timeStamp" value="29" />
         </line-breakpoint>
       </breakpoints>

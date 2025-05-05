@@ -7,16 +7,7 @@ from agent import FlappyBirdAgent
 from configs.dqn_configs import *
 from configs.game_configs import NUM_RAYS
 from game import FlappyBirdPygame
-from visualize_training import plot
-
-
-# Training configurations
-LOAD_MODEL = True  # Load from a saved checkpoint if available
-SAVE_INTERVAL = 10000  # Save the model every 10000 steps
-TEST_MODE = False  # If True, AI only plays without training
-NUM_EPISODES = 10000  # Increased number of episodes for longer training
-MAX_STEPS_PER_EPISODE = 10000000  # Maximum steps per episode
-CONSECUTIVE_WINS_THRESHOLD = 100  # Stop training if AI wins 100 consecutive episodes
+from visualization_utils import *
 
 # Initialize game and agent
 game = FlappyBirdPygame()
@@ -24,28 +15,30 @@ state_dim = NUM_RAYS + 1
 num_actions = 2  # [Do nothing, Jump]
 agent = FlappyBirdAgent(state_dim, num_actions)
 
-# Target Network Update Configurations
-TARGET_UPDATE = 3000  # Hard update every 3,000 steps
+agent.count_parameters()
+
 steps_done = 0  # Step counter
 
 # Load model if available
-if LOAD_MODEL and os.path.exists("policy_net.pth"):
-    agent.policy_net.load_state_dict(torch.load("policy_net.pth"))
-    agent.target_net.load_state_dict(torch.load("target_net.pth"))
+if LOAD_MODEL and os.path.exists("models/policy_net.pth"):
+    agent.policy_net.load_state_dict(torch.load("models/policy_net.pth"))
+    agent.target_net.load_state_dict(torch.load("models/target_net.pth"))
     print("Loaded saved model.")
 
     # Reset epsilon so AI continues exploring instead of only exploiting past actions
-    agent.epsilon = max(agent.epsilon_min, agent.epsilon * 0.99)  # Ensure some exploration
+    agent.epsilon = max(agent.epsilon_min, agent.epsilon * TEMP_DECAY_RESET)  # Ensure some exploration
 
 if os.path.exists("replay_buffer.pt"):
-    buffer_data = torch.load("replay_buffer.pt")
+    buffer_data = torch.load("models/replay_buffer.pt")
     agent.replay_buffer.load_from_torch_dict(buffer_data)
     print(f"Loaded replay buffer with {len(agent.replay_buffer.memory)} experiences.")
 
 scores = []
 mean_scores = []
-window_size = 10  # Moving average window for mean score
+max_score = 0
+window_size = 50  # Moving average window for mean score
 consecutive_wins = 0  # Counter for consecutive wins
+epsilons = []  # Store epsilon values for plotting
 
 for episode in range(NUM_EPISODES):
     state = game.get_state()
@@ -83,19 +76,22 @@ for episode in range(NUM_EPISODES):
 
         # Save model every `SAVE_INTERVAL` steps
         if steps_done % SAVE_INTERVAL == 0:
-            torch.save(agent.policy_net.state_dict(), "policy_net.pth")
-            torch.save(agent.target_net.state_dict(), "target_net.pth")
+            torch.save(agent.policy_net.state_dict(), "models/policy_net.pth")
+            torch.save(agent.target_net.state_dict(), "models/target_net.pth")
             print(f"Saved model at step {steps_done}")
 
         if game_over or steps >= MAX_STEPS_PER_EPISODE:
+            max_score = max(max_score, score)  # Update max score   
             scores.append(score)
-            mean_scores.append(np.mean(scores[-window_size:]))
+            if (episode + 1) % window_size == 0:
+                mean_scores.append(np.mean(scores[-window_size:]))
 
             # Check if AI lost (score = 0)
             if game_over or score == 0:
                 is_winning_episode = False  # AI lost
 
-            print(f"Episode {episode + 1}: Score = {score}, Mean Score = {mean_scores[-1]:.2f}, Consecutive Wins = {consecutive_wins}")
+            if (episode + 1) % window_size == 0:
+                print(f"Episode {episode + 1}: Score = {score}, Mean Score = {mean_scores[-1]:.2f}, Consecutive Wins = {consecutive_wins}")
 
             game.reset()
 
@@ -112,13 +108,26 @@ for episode in range(NUM_EPISODES):
         print(f"AI has won {CONSECUTIVE_WINS_THRESHOLD} consecutive times! Training stopped.")
         break
 
-    if episode % 1000 == 0 and episode != 0:
+    if episode % SAVE_REPLAY_BUFFER_INTERVAL == 0 and episode != 0:
         # Save replay buffer every 1000 episodes
         buffer_dict = agent.replay_buffer.to_torch_dict()
-        torch.save(buffer_dict, "replay_buffer.pt")
+        torch.save(buffer_dict, "models/replay_buffer.pt")
         print("Replay buffer saved.")
 
+    if episode % TRACK_EPSILON_DECAY_INTERVAL == 0:
+        epsilons.append(agent.epsilon)
+
+    if episode % VISUALIZATION_INTERVAL == 0 and episode != 0:
+        print(max_score)
+        plot(scores[::window_size], save_path="plots/scores.png", label="Score", title="Score per Episode")
+        plot(mean_scores, save_path="plots/mean_scores.png", label="Mean Score", title="Mean Score per Episode")
+        plot_epsilon_decay(epsilons) 
+        plot_attention_heatmap(agent.policy_net.get_attention_weights()) 
+        plot_histogram_td_errors(agent.td_errors)
+        plot_losses(agent.losses, window_size=window_size)
+        plot_grad_norms(agent.grad_norms)
+        plot_q_values_distribution(agent.q_values)
+        plot_q_stats(agent.max_q_values, agent.min_q_values)
 
 print("Training Completed!")
-plot(scores, mean_scores)
 pygame.quit()

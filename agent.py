@@ -32,6 +32,18 @@ class FlappyBirdAgent:
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE,
                                     weight_decay=WEIGHT_DECAY)
 
+        self.td_errors = []
+        self.losses = []
+        self.losses.append(0)  # Initialize losses list with a zero value
+     
+        self.grad_norms = []
+        self.max_q_values = []
+        self.min_q_values = []
+        self.max_q_values.append(0)
+        self.min_q_values.append(0)
+        self.q_values = []
+        self.q_values.append(0)  # Initialize Q-values list with a zero value
+     
     def choose_action(self, state, steps_done=0):
         """
         Selects an action using an epsilon-greedy strategy.
@@ -60,22 +72,47 @@ class FlappyBirdAgent:
         # Compute current Q-values
         q_values = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         
+        self.q_values.append(q_values.mean().item())  # Store mean Q-value for logging
+        max_q = q_values.max().item()
+        min_q = q_values.min().item()
+        self.max_q_values.append(max_q)  # Store max Q-value for logging
+        self.min_q_values.append(min_q)  # Store min Q-value for logging
+        
         # Compute target Q-values using the target network
         with torch.no_grad():
             best_action = self.policy_net(next_states).argmax(dim=-1,
                                                               keepdim=True)  # Select the best action using policy_net
             next_q_values = self.target_net(next_states).gather(1, best_action).squeeze(1)  # Evaluate using target_net
             target_q_values = rewards + self.gamma * next_q_values
-
+    
         # Compute TD-Error
         td_errors = target_q_values - q_values
+        self.td_errors.append(td_errors.abs().mean().item())
 
         # Update priorities
         self.replay_buffer.update_priorities(indices, td_errors.abs().detach().numpy())
 
         # Update policy network
         loss = torch.log(torch.cosh(q_values - target_q_values)).mean()
+        self.losses.append(loss)
+        
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), GLOBAL_CLIP_NORM)
+        
+        total_norm = 0
+        for p in self.policy_net.parameters():
+            if p.grad is not None:
+                param_norm = p.grad.data.norm(2)
+                total_norm += param_norm.item() ** 2
+        
+        total_norm = total_norm ** 0.5
+        self.grad_norms.append(total_norm)
+        
         self.optimizer.step()
+        
+    def count_parameters(self):
+        total = sum(p.numel() for p in self.policy_net.parameters())
+        trainable = sum(p.numel() for p in self.policy_net.parameters() if p.requires_grad)
+        print(f"Total parameters: {total:,}")
+        print(f"Trainable parameters: {trainable:,}")
