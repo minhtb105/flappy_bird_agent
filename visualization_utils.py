@@ -29,21 +29,30 @@ def plot(scores, save_path="plots/scores.png", label="Score", title="Training Pr
 def plot_attention_heatmap(attn_weights, title="Attention Heatmap", save_path="plots/attention_weights.png"):
     if isinstance(attn_weights, torch.Tensor):
         attn_weights = attn_weights.detach().cpu().numpy()
-        
-    plt.figure(figsize=(10, 5))
-    plt.imshow(attn_weights[0], cmap='viridis')
-    plt.colorbar()
-    plt.title(title)
-    plt.xlabel("Input timestep")
-    plt.ylabel("Output timestep")
+
+    num_heads = attn_weights.shape[0]
+    fig, axs = plt.subplots(1, num_heads, figsize=(5 * num_heads, 5))
+
+    if num_heads == 1:
+        axs = [axs]  # make iterable
+
+    for i in range(num_heads):
+        ax = axs[i]
+        im = ax.imshow(attn_weights[i], cmap='viridis')
+        ax.set_title(f"{title} - Head {i}")
+        ax.set_xlabel("Input timestep")
+        ax.set_ylabel("Output timestep")
+        plt.colorbar(im, ax=ax)
+
     plt.tight_layout()
-    
+
     if save_path:
         plt.savefig(save_path)
     else:
         plt.show()
-        
+
     plt.close()
+
 
 def plot_epsilon_decay(epsilons, title="Epsilon Decay Over Episodes", save_path="plots/epsilon_decay.png"):
     if isinstance(epsilons, torch.Tensor):
