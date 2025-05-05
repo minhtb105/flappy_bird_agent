@@ -1,14 +1,12 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-import os
 import seaborn as sns
 import torch.nn.functional as F
-from configs.game_configs import YELLOW
 from configs.dqn_configs import TRACK_EPSILON_DECAY_INTERVAL
 
 
-def plot(scores, save_path="plots/scores.png", label="Score", title="Training Progress", show=False):
+def plot(scores, save_path="plots/scores.png", label="Score", title="Training Progress"):
     if isinstance(scores, torch.Tensor):
         scores = scores.detach().cpu().numpy()
     
@@ -68,6 +66,8 @@ def plot_epsilon_decay(epsilons, title="Epsilon Decay Over Episodes", save_path=
 def plot_losses(losses, window_size=100, title="Loss Visualization", save_path="plots/losses_separated.png"):
     losses = [l.detach().cpu().item() if torch.is_tensor(l) else l for l in losses]
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+
+    plt.suptitle(title, fontsize=16)
 
     # Subplot 1: Raw Loss
     ax1.plot(losses, color='gray', alpha=0.7)
@@ -204,7 +204,7 @@ def plot_positional_embedding_similarity(positional_embeddings: torch.Tensor):
         raise ValueError("positional_embeddings must be a torch.Tensor")
     
     with torch.no_grad():
-        # Normalize each embedding to unit vector
+        # Normalize each embedding to the unit vector
         norm_embeddings = F.normalize(positional_embeddings, p=2, dim=-1)
         
         # Compute cosine similarity matrix
