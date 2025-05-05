@@ -128,21 +128,6 @@ class FlappyBirdPygame:
 
         return np.append(ray_inputs, velocity_norm).astype(np.float32)
 
-    def draw_rays(self, fov=np.pi/2, max_distance=MAX_RAY_LENGTH):
-        num_rays = len(self.ray_distances)
-        angles = np.linspace(-fov/2, fov/2, num_rays)
-        
-        for i, angle in enumerate(angles):
-            ray_length = self.ray_distances[i] * max_distance
-
-            ray_dx = np.cos(angle)
-            ray_dy = np.sin(angle)
-
-            end_x = self.bird_x + ray_dx * ray_length
-            end_y = self.bird_y + ray_dy * ray_length
-
-            pygame.draw.line(self.screen, (0, 255, 0), (self.bird_x, self.bird_y), (end_x, end_y), 1)
-
     def is_collision(self):
         # Create mask for bird and pipe
         bird_mask = pygame.mask.from_surface(self.bird)
@@ -172,13 +157,6 @@ class FlappyBirdPygame:
         private_zone_radius = (max(BIRD_WIDTH, BIRD_HEIGHT) + PLAYER_PRIVATE_ZONE) / 2
 
         return private_zone_radius
-
-    def draw_private_zone(self):
-        """
-        Draw the private zone of the bird as a transparent circle (for debugging).
-        """
-        radius = self.compute_private_zone_radius()
-        pygame.draw.circle(self.screen, (255, 0, 0), (int(self.bird_x), int(self.bird_y)), int(radius), 1)
 
     def check_private_zone_reward(self):
         """
@@ -220,7 +198,7 @@ class FlappyBirdPygame:
         self.move(action)
 
         # Penalize staying at the top too long
-        if self.bird_y < 50:
+        if self.bird_y < 100:
             reward -= 0.5
 
         # Move pipes
@@ -273,6 +251,28 @@ class FlappyBirdPygame:
         if self.bird_y < 0:
             self.bird_y = 0
             self.velocity = 0
+
+    def draw_rays(self, fov=np.pi/2, max_distance=MAX_RAY_LENGTH):
+        num_rays = len(self.ray_distances)
+        angles = np.linspace(-fov/2, fov/2, num_rays)
+        
+        for i, angle in enumerate(angles):
+            ray_length = self.ray_distances[i] * max_distance
+
+            ray_dx = np.cos(angle)
+            ray_dy = np.sin(angle)
+
+            end_x = self.bird_x + ray_dx * ray_length + BIRD_WIDTH / 2
+            end_y = self.bird_y + ray_dy * ray_length + BIRD_HEIGHT / 2
+
+            pygame.draw.line(self.screen, (0, 255, 0), (self.bird_x + BIRD_WIDTH / 2, self.bird_y + BIRD_HEIGHT / 2), (end_x, end_y), 1)
+
+    def draw_private_zone(self):
+        """
+        Draw the private zone of the bird as a transparent circle (for debugging).
+        """
+        radius = self.compute_private_zone_radius()
+        pygame.draw.circle(self.screen, (255, 0, 0), (int(self.bird_x), int(self.bird_y)), int(radius), 1)
 
     def update_ui(self):
         self.screen.fill("white")
