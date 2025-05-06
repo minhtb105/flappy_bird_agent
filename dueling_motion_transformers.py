@@ -79,7 +79,8 @@ class DuelingMotionTransformer(nn.Module):
         self.value_stream = nn.Sequential(
             nn.Linear(d_model, 128),
             nn.GELU(),
-            nn.Linear(128, 1) 
+            nn.Linear(128, 1),
+            nn.Tanh()  # constrain output
         )
         
         self.advantage_stream = nn.Sequential(

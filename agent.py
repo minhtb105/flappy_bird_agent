@@ -42,7 +42,7 @@ class FlappyBirdAgent:
         self.q_values = []
         self.q_values.append(0)  # Initialize Q-values list with a zero value
      
-    def choose_action(self, state, steps_done=0):
+    def choose_action(self, state, explore=True):
         """
         Selects an action using Boltzmann Exploration (softmax over Q-values).
         """
@@ -50,10 +50,28 @@ class FlappyBirdAgent:
         with torch.no_grad():
             q_values = self.policy_net(state).squeeze(0)  # shape: [action_dim]
 
-        # Apply Boltzmann exploration
-        exp_q_values = torch.exp((q_values / self.temp))
-        probs = exp_q_values / exp_q_values.sum() + 1e-6  # Normalize to get a probability distribution
+        # Log for debugging
+        if torch.isnan(q_values).any():
+            print(f"[Warning] NaN in Q-values: {q_values}")
+        if self.temp < 1e-4:
+            print(f"[Debug] Temperature too low: {self.temp}")
+        if q_values.max().item() > 100 or q_values.min().item() < -100:
+            print(f"[Debug] Unusual Q-values: {q_values}")
 
+        if not explore:
+            return torch.argmax(q_values).item()
+
+        # Clamp Q-values to avoid overflow in exp
+        q_values = torch.clamp(q_values, -20, 20)  # safe range for exp()
+
+        # Apply Boltzmann exploration
+        exp_q_values = torch.exp((q_values / self.temp)) 
+        probs = exp_q_values / (exp_q_values.sum() + 1e-6)  # Normalize to get a probability distribution
+
+        if torch.isnan(probs).any() or probs.sum().item() <= 0:
+            print(f"[Error] Invalid action probabilities: {probs}")
+            return random.randint(0, self.action_dim - 1)
+        
         # Sample action from the distribution
         action = torch.multinomial(probs, num_samples=1).item()  # Sample one action based on the probabilities
 
@@ -61,8 +79,7 @@ class FlappyBirdAgent:
 
     def update_temperature(self):
         """
-        Update the temperature for Boltzmann exploration.
-        The temperature decays over time, but never goes below `temp_min`.
+        Decay Boltzmann temperature based on steps_done using exponential decay.
         """
         self.temp = max(self.temp_min, self.temp * self.temp_decay)
 
@@ -81,6 +98,13 @@ class FlappyBirdAgent:
         # Compute current Q-values
         q_values = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
         
+        assert torch.isfinite(q_values).all(), f"Q-values contain NaN/Inf: {q_values}"
+        assert q_values.mean() > -100, "Q_values decreasing too fast"
+        assert q_values.mean() < 100, "Q_values increasing too fast"
+        
+        q_mean = q_values.mean().item()
+        assert abs(q_mean) < 100, f"Output drift detected! Mean Q = {q_mean}"
+        
         self.q_values.append(q_values.mean().item())  # Store mean Q-value for logging
         max_q = q_values.max().item()
         min_q = q_values.min().item()
@@ -96,6 +120,7 @@ class FlappyBirdAgent:
     
         # Compute TD-Error
         td_errors = target_q_values - q_values
+        assert td_errors.mean() < 50, "Bootstrapping error too large!"
         self.td_errors.append(td_errors.abs().mean().item())
 
         # Update priorities
@@ -116,6 +141,7 @@ class FlappyBirdAgent:
                 total_norm += param_norm.item() ** 2
         
         total_norm = total_norm ** 0.5
+        assert total_norm < 100, f"Gradient norm too high: {total_norm}"
         self.grad_norms.append(total_norm)
         
         self.optimizer.step()

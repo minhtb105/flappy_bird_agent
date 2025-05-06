@@ -3,7 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch.nn.functional as F
-from configs.dqn_configs import TRACK_EPSILON_DECAY_INTERVAL
+from configs.dqn_configs import TRACK_TEMPERATURE_DECAY_INTERVAL
 
 
 def plot(scores, save_path="plots/scores.png", label="Score", title="Training Progress"):
@@ -31,7 +31,7 @@ def plot_attention_heatmap(attn_weights, title="Attention Heatmap", save_path="p
         attn_weights = attn_weights.detach().cpu().numpy()
         
     # Remove the batch dimension if present
-    if attn_weights.ndim() == 4:  # (batch_size, num_heads, seq_len, seq_len)
+    if attn_weights.ndim == 4:  # (batch_size, num_heads, seq_len, seq_len)
         attn_weights = attn_weights[0]  
         
     assert attn_weights.ndim == 3, "Attention weights should be 3D (num_heads, seq_len, seq_len) or 2D (seq_len, seq_len)."
@@ -69,7 +69,7 @@ def plot_temperature_decay(temperatures, title="Temperature Decay Over Episodes"
         temperatures = temperatures.detach().cpu().numpy()
     
     plt.figure(figsize=(10, 5))
-    plt.plot([TRACK_EPSILON_DECAY_INTERVAL * i for i in range(len(temperatures))], temperatures)
+    plt.plot([TRACK_TEMPERATURE_DECAY_INTERVAL * i for i in range(len(temperatures))], temperatures)
     plt.title(title)
     plt.xlabel("Episode")
     plt.ylabel("Epsilon")

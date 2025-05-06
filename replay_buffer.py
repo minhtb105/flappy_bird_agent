@@ -1,8 +1,10 @@
 import numpy as np
 import torch
-from configs.dqn_configs import FRAME_STACK, MAX_REPLAY_SIZE, BATCH_SIZE
+from configs.dqn_configs import FRAME_STACK, MAX_REPLAY_SIZE, BATCH_SIZE, MIN_REPLAY_SIZE
 from collections import deque
+import logging
 
+logging.basicConfig(level=logging.DEBUG)
 
 class PrioritizedReplayBuffer:
     def __init__(self, capacity=MAX_REPLAY_SIZE, alpha=0.6):
@@ -16,7 +18,7 @@ class PrioritizedReplayBuffer:
         self.position = 0  # # Pointer for inserting experiences
         self.priorities = np.zeros((capacity,), dtype=np.float32)  # Stores priority values
         self.alpha = alpha
-
+        logging.debug(f"Initialized PER buffer with capacity {capacity} and alpha {alpha}")
 
     def store_transition(self, state, action, reward, next_state):
         """Store transition with maximum priority."""
@@ -33,8 +35,7 @@ class PrioritizedReplayBuffer:
         
     def sample(self, batch_size=BATCH_SIZE, beta=0.4):
         """Samples a batch using priority-based probability distribution."""
-        if len(self.memory) == 0:
-            return None  # Avoid error if buffer is empty
+        assert len(self.memory) >= MIN_REPLAY_SIZE, "Insufficient replay memory to sample from"
 
         priorities = self.priorities[: len(self.memory)] ** self.alpha
         
@@ -60,6 +61,8 @@ class PrioritizedReplayBuffer:
         weights /= weights.max()  # Normalize weights
         weights = torch.tensor(weights, dtype=torch.float32)
         
+        assert not torch.any(torch.isnan(states)), "NaN in sampled states"
+        
         return states, actions, rewards, next_states, indices, weights
 
     def update_priorities(self, indices, td_errors):
@@ -67,6 +70,10 @@ class PrioritizedReplayBuffer:
         td_errors = np.clip(td_errors, -10, 10)  # Clip TD errors to avoid extreme values
         td_errors = np.nan_to_num(td_errors, nan=1.0, posinf=10.0, neginf=-10.0)
         self.priorities[indices] = abs(td_errors) + 1e-3 # Avoid zero priority
+        
+        std_dev = np.std(td_errors)
+        assert std_dev < 100, f"TD error variance too high: {std_dev:.2f}"
+        logging.debug(f"Updated priorities for {len(indices)} indices")
 
     def to_torch_dict(self):
         states, actions, rewards, next_states = zip(*[(s, a, r, ns) for s, a, r, ns in self.memory])
@@ -94,3 +101,5 @@ class PrioritizedReplayBuffer:
             )
             self.memory.append(transition)
         
+        assert len(self.memory) <= self.capacity, "Loaded memory exceeds capacity"
+        logging.debug(f"Loaded {len(self.memory)} transitions from saved state")

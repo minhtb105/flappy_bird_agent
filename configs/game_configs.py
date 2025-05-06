@@ -29,8 +29,8 @@ PIPE_WIDTH = 52
 PIPE_SPEED = 3
 PIPE_GAP_SIZE = 100  # Distance between top pipe and bottom pipe
 PIPE_START_OFFSET = 140 # Offset for the first pipe
-PIPE_SPACING = 100
-NUM_PIPES = 3  # Number of pipes on the screen at a time
+PIPE_SPACING = 140
+NUM_PIPES = 2  # Number of pipes on the screen at a time
 
 NUM_RAYS = 180
 MAX_RAY_LENGTH = 50

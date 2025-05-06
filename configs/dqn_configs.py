@@ -19,12 +19,13 @@ FRAME_STACK = 12 # Size of short-term (episodic) memory
 
 # Exploration parameters
 TEMP_INIT = 0.5  #  Initial Boltzmann temperature for exploration
-TEMP_MIN = 0.01   # Minimum Boltzmann temperature
+TEMP_MIN = 0.05   # Minimum Boltzmann temperature
 TEMP_DECAY = 0.999999  # Decay of Boltzmann temperature
 TEMP_DECAY_RESET = 0.99 
 
 # Replay Memory
 MAX_REPLAY_SIZE = 1000000
+MIN_REPLAY_SIZE = 100000
 SAMPLES_PER_INSERT_RATIO = 32
 
 # Training configurations
