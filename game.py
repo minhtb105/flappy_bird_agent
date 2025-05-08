@@ -1,7 +1,5 @@
-import math
 import random
 import time
-import torch
 import numpy as np
 import pygame
 from configs.game_configs import *

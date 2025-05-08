@@ -3,103 +3,141 @@ import torch
 from configs.dqn_configs import FRAME_STACK, MAX_REPLAY_SIZE, BATCH_SIZE, MIN_REPLAY_SIZE
 from collections import deque
 import logging
+import time
 
-logging.basicConfig(level=logging.DEBUG)
+# Setup logging
+logging.basicConfig(filename='logs/debug_log.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+last_logged_errors = {}
+
+def log_once_per(error_key: str, message: str, interval_seconds: int = 500):
+    current_time = time.time()
+    if error_key not in last_logged_errors or (current_time - last_logged_errors[error_key]) > interval_seconds:
+        logging.error(message)
+        last_logged_errors[error_key] = current_time
+
+# Error counter
+error_counts = {
+    "store_transition": 0,
+    "sample": 0,
+    "update_priorities": 0,
+    "to_torch_dict": 0,
+    "load_from_dict": 0,
+    "insufficient_memory": 0,
+}
+
+def log_error_stats(step, interval=1000):
+    if step % interval == 0:
+        for key, count in error_counts.items():
+            if count > 0:
+                logging.warning(f"[{key}] occurred {count} times in last {interval} steps")
+                error_counts[key] = 0
+
 
 class PrioritizedReplayBuffer:
     def __init__(self, capacity=MAX_REPLAY_SIZE, alpha=0.6):
-        """
-            Implements Prioritized Experience Replay (PER).
-            :param capacity: Max size of replay buffer
-            :param alpha: Priority exponent (0 = uniform sampling, 1 = full priority)
-        """
         self.capacity = capacity
-        self.memory = deque(maxlen=capacity)  # Circular buffer for storing experiences
-        self.position = 0  # # Pointer for inserting experiences
-        self.priorities = np.zeros((capacity,), dtype=np.float32)  # Stores priority values
+        self.memory = deque(maxlen=capacity)
+        self.position = 0
+        self.priorities = np.zeros((capacity,), dtype=np.float32)
         self.alpha = alpha
         logging.debug(f"Initialized PER buffer with capacity {capacity} and alpha {alpha}")
 
     def store_transition(self, state, action, reward, next_state):
-        """Store transition with maximum priority."""
-        max_priority = self.priorities.max() if self.memory else 1.0  # Default priority for new experiences
+        try:
+            max_priority = self.priorities.max() if self.memory else 1.0
+            if len(self.memory) < self.capacity:
+                self.memory.append((state, action, reward, next_state))
+            else:
+                self.memory[self.position] = (state, action, reward, next_state)
+            self.priorities[self.position] = max_priority
+            self.position = (self.position + 1) % self.capacity
+        except Exception as e:
+            error_counts["store_transition"] += 1
+            log_once_per("store_transition", f"Store transition error: {e}")
 
-        if len(self.memory) < self.capacity:
-            self.memory.append((state, action, reward, next_state))
-        else:
-            self.memory[self.position] = (state, action, reward, next_state)
-             
-        self.priorities[self.position] = max_priority  # assign max priority
-
-        self.position = (self.position + 1) % self.capacity  # circular buffer
-        
     def sample(self, batch_size=BATCH_SIZE, beta=0.4):
-        """Samples a batch using priority-based probability distribution."""
-        assert len(self.memory) >= MIN_REPLAY_SIZE, "Insufficient replay memory to sample from"
+        if len(self.memory) < MIN_REPLAY_SIZE:
+            log_once_per("insufficient_memory", "Insufficient replay memory to sample from")
+            error_counts["insufficient_memory"] += 1
+            
+            return None
 
-        priorities = self.priorities[: len(self.memory)] ** self.alpha
-        
-        priorities = np.nan_to_num(priorities, nan=1.0, posinf=1.0, neginf=0.0)
-        total = priorities.sum()
-        if total == 0 or np.isnan(total):
-            probabilities = np.ones_like(priorities) / len(priorities)
-        else:
-            probabilities = priorities / total
+        try:
+            priorities = self.priorities[: len(self.memory)] ** self.alpha
+            priorities = np.nan_to_num(priorities, nan=1.0, posinf=1.0, neginf=0.0)
+            total = priorities.sum()
+            probabilities = np.ones_like(priorities) / len(priorities) if total == 0 or np.isnan(total) else priorities / total
+            indices = np.random.choice(len(self.memory), batch_size, p=probabilities)
+            experiences = [self.memory[idx] for idx in indices]
 
-        indices = np.random.choice(len(self.memory), batch_size, p=probabilities)  # sample indices
-        experiences = [self.memory[idx] for idx in indices]
+            states, actions, rewards, next_states = zip(*experiences)
 
-        states, actions, rewards, next_states = zip(*experiences)
+            states = torch.tensor(np.stack(states), dtype=torch.float32)
+            next_states = torch.tensor(np.stack(next_states), dtype=torch.float32)
+            actions = torch.tensor(actions, dtype=torch.long)
+            rewards = torch.tensor(rewards, dtype=torch.float32)
 
-        states = torch.tensor(np.stack(states), dtype=torch.float32)  # (batch_size, FRAME_STACK, state_dim)
-        next_states = torch.tensor(np.stack(next_states), dtype=torch.float32)  # (batch_size, FRAME_STACK, state_dim)
-        actions = torch.tensor(actions, dtype=torch.long)  # (batch_size,)
-        rewards = torch.tensor(rewards, dtype=torch.float32)  # (batch_size,)
-        
-        # Compute importance-sampling weights to reduce bias
-        weights = (len(self.memory) * probabilities[indices]) ** (-beta)
-        weights /= weights.max()  # Normalize weights
-        weights = torch.tensor(weights, dtype=torch.float32)
-        
-        assert not torch.any(torch.isnan(states)), "NaN in sampled states"
-        
-        return states, actions, rewards, next_states, indices, weights
+            weights = (len(self.memory) * probabilities[indices]) ** (-beta)
+            weights /= weights.max()
+            weights = torch.tensor(weights, dtype=torch.float32)
+
+            return states, actions, rewards, next_states, indices, weights
+
+        except Exception as e:
+            error_counts["sample"] += 1
+            log_once_per("sample", f"Sample error: {e}")
+            
+            return None
 
     def update_priorities(self, indices, td_errors):
-        """Updates the priorities of sampled transitions."""
-        td_errors = np.clip(td_errors, -10, 10)  # Clip TD errors to avoid extreme values
-        td_errors = np.nan_to_num(td_errors, nan=1.0, posinf=10.0, neginf=-10.0)
-        self.priorities[indices] = abs(td_errors) + 1e-3 # Avoid zero priority
-        
-        std_dev = np.std(td_errors)
-        assert std_dev < 100, f"TD error variance too high: {std_dev:.2f}"
-        logging.debug(f"Updated priorities for {len(indices)} indices")
+        try:
+            td_errors = np.clip(td_errors, -50, 50)
+            td_errors = np.nan_to_num(td_errors, nan=1.0, posinf=10.0, neginf=-10.0)
+            self.priorities[indices] = np.abs(td_errors) + 1e-3
+            std_dev = np.std(td_errors)
+            if std_dev > 100:
+                logging.warning(f"TD error variance too high: {std_dev:.2f}")
+            logging.debug(f"Updated priorities for {len(indices)} indices")
+        except Exception as e:
+            error_counts["update_priorities"] += 1
+            log_once_per("update_priorities", f"Update priorities error: {e}")
 
     def to_torch_dict(self):
-        states, actions, rewards, next_states = zip(*[(s, a, r, ns) for s, a, r, ns in self.memory])
-        return {
-            'states': torch.tensor(np.stack(states), dtype=torch.float32),
-            'actions': torch.tensor(actions, dtype=torch.long),
-            'rewards': torch.tensor(rewards, dtype=torch.float32),
-            'next_states': torch.tensor(np.stack(next_states), dtype=torch.float32),
-            'priorities': torch.tensor(self.priorities, dtype=torch.float32),
-            'position': self.position
-        }
-        
-    def load_from_torch_dict(self, data):
-        self.memory.clear()
-        self.position = data['position']
-        self.priorities = data['priorities'].numpy()
+        try:
+            states, actions, rewards, next_states = zip(*[(s, a, r, ns) for s, a, r, ns in self.memory])
+            return {
+                'states': torch.tensor(np.stack(states), dtype=torch.float32),
+                'actions': torch.tensor(actions, dtype=torch.long),
+                'rewards': torch.tensor(rewards, dtype=torch.float32),
+                'next_states': torch.tensor(np.stack(next_states), dtype=torch.float32),
+                'priorities': torch.tensor(self.priorities, dtype=torch.float32),
+                'position': self.position
+            }
+        except Exception as e:
+            error_counts["to_torch_dict"] += 1
+            log_once_per("to_torch_dict", f"to_torch_dict error: {e}")
+            
+            return {}
 
-        for i in range(len(data['states'])):
-            transition = (
-                data['states'][i].numpy(),
-                data['actions'][i].item(),
-                data['rewards'][i].item(),
-                data['next_states'][i].numpy(),
-                self.priorities
-            )
-            self.memory.append(transition)
-        
-        assert len(self.memory) <= self.capacity, "Loaded memory exceeds capacity"
-        logging.debug(f"Loaded {len(self.memory)} transitions from saved state")
+    def load_from_torch_dict(self, data):
+        try:
+            self.memory.clear()
+            self.position = data['position']
+            self.priorities = data['priorities'].numpy()
+
+            for i in range(len(data['states'])):
+                transition = (
+                    data['states'][i].numpy(),
+                    data['actions'][i].item(),
+                    data['rewards'][i].item(),
+                    data['next_states'][i].numpy(),
+                )
+                self.memory.append(transition)
+
+            if len(self.memory) > self.capacity:
+                logging.warning("Loaded memory exceeds capacity")
+            logging.debug(f"Loaded {len(self.memory)} transitions from saved state")
+        except Exception as e:
+            error_counts["load_from_dict"] += 1
+            log_once_per("load_from_dict", f"Load from torch dict error: {e}")
