@@ -49,6 +49,7 @@ class FlappyBirdPygame:
         self.base = pygame.transform.scale(pygame.image.load(BASE_IMAGE), (WIDTH, BASE_HEIGHT))
         self.bird = pygame.image.load(BIRD_IMAGE)
 
+        self.steps = 0  # total steps survived in an episode
         self.velocity = 0
         self.gravity = GRAVITY
         self.pipes = []
@@ -166,16 +167,27 @@ class FlappyBirdPygame:
         radius = self.compute_private_zone_radius()
         bird_center = pygame.Vector2(self.bird_x + BIRD_WIDTH / 2, self.bird_y + BIRD_HEIGHT / 2)
 
+        # Dynamic reward
+        if self.steps < 200:
+            safe_reward = 0.2
+            danger_penalty = -0.6
+        elif self.steps < 500:
+            safe_reward = 0.1
+            danger_penalty = -0.4
+        else:
+            safe_reward = 0.02
+            danger_penalty = -0.2
+
         for pipe in self.pipes:
             # Top pipe
             if bird_center.distance_to(pipe.top_rect.center) < radius:
-                return -0.5
+                return danger_penalty
 
             # Bottom pipe
             if bird_center.distance_to(pipe.bottom_rect.center) < radius:
-                return -0.5
+                return danger_penalty
 
-        return 0.1
+        return safe_reward
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -190,6 +202,7 @@ class FlappyBirdPygame:
         """
         self.handle_events()
 
+        self.steps += 1
         reward = 0
 
         # Move bird
@@ -227,7 +240,9 @@ class FlappyBirdPygame:
 
             return reward, self.is_game_over, self.score  # Game over
 
-        reward += 0.1  # Small reward for "still alive"
+        # Penalty for staying too long without scoring
+        if self.steps > 100 and self.score == 0:
+            reward -= 1  # discourage idle survival
 
         self.update_ui()
         self.clock.tick(FPS)

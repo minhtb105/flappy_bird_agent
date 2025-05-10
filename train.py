@@ -1,12 +1,11 @@
 import pygame
 import os
 import logging
-import re
 from collections import deque
 import argparse
 from agent import FlappyBirdAgent 
 from configs.dqn_configs import *
-from configs.game_configs import NUM_RAYS
+from configs.game_configs import NUM_RAYS, REWARD_SCALE, REWARD_CLIP, FRAME_STACK
 from game import FlappyBirdPygame
 from visualization_utils import *
 

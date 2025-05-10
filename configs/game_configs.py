@@ -46,3 +46,6 @@ GAME_OVER_IMAGE = ASSETS_PATH + "gameover.png"
 
 # Start screen images
 START_IMAGES = [ASSETS_PATH + f"{i}.png" for i in range(6)]
+
+REWARD_SCALE = 1.0
+REWARD_CLIP = 1.0
