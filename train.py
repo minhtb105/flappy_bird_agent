@@ -5,7 +5,7 @@ from collections import deque
 import argparse
 from agent import FlappyBirdAgent 
 from configs.dqn_configs import *
-from configs.game_configs import NUM_RAYS, REWARD_SCALE, REWARD_CLIP, FRAME_STACK
+from configs.game_configs import NUM_RAYS
 from game import FlappyBirdPygame
 from visualization_utils import *
 
@@ -53,7 +53,7 @@ def train_loop():
     for episode in range(NUM_EPISODES):
         state = game.get_state()
         state_seq = deque([state] * FRAME_STACK, maxlen=FRAME_STACK)
-        total_reward, steps = 0, 0
+        total_reward, steps, total_score = 0, 0, 0
         is_winning_episode = True
 
         while not game.is_game_over and steps < MAX_STEPS_PER_EPISODE:
@@ -72,6 +72,7 @@ def train_loop():
 
             try:
                 reward, game_over, score = game.step(action_one_hot)
+                total_score += score
             except Exception as e:
                 error_counts["game_step"] += 1
                 log_error_stats("game_step", f"Game step failed: {e}")
@@ -92,7 +93,6 @@ def train_loop():
                 break
 
             game.is_game_over = game_over
-            state = next_state
             total_reward += reward
             steps_done += 1
 
@@ -108,14 +108,14 @@ def train_loop():
             if game_over:
                 break
 
-            scores.append(score)
-            max_score = max(max_score, score)
+        max_score = max(max_score, total_score)
+        scores.append(total_score)
 
         if (episode + 1) % 50 == 0:
             mean_scores.append(np.mean(scores[-50:]))
-            logging.info(f"Episode {episode+1}: Score = {score}, Mean Score = {mean_scores[-1]:.2f}, Wins = {consecutive_wins}")
+            logging.info(f"Episode {episode+1}: Score = {total_score}, Mean Score = {mean_scores[-1]:.2f}, Wins = {consecutive_wins}")
 
-        if game.is_game_over or score == 0:
+        if game.is_game_over or total_score == 0:
             is_winning_episode = False
 
         consecutive_wins = consecutive_wins + 1 if is_winning_episode else 0
@@ -150,17 +150,16 @@ def train_loop():
     logging.info("Training Completed")
     pygame.quit()
 
-def test_loop(agent, NUM_EPISODES=100, MAX_STEPS_PER_EPISODE=1000, window_size=10):
+def test_loop(num_episodes=100, max_steps_per_episode=1000, window_size=10):
     max_score = 0
     test_scores, mean_scores = [], []
 
-    for episode in range(NUM_EPISODES):
+    for episode in range(num_episodes):
         game.reset()
         state = game.get_state()
-        total_reward = 0
-        steps = 0
+        total_reward, total_score, steps = 0, 0, 0
 
-        while not game.is_game_over and steps < MAX_STEPS_PER_EPISODE:
+        while not game.is_game_over and steps < max_steps_per_episode:
             try:
                 state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
                 with torch.no_grad():
@@ -175,17 +174,18 @@ def test_loop(agent, NUM_EPISODES=100, MAX_STEPS_PER_EPISODE=1000, window_size=1
             state = next_state
             total_reward += reward
             steps += 1
+            total_score += score
 
             if game_over:
                 break
 
-        test_scores.append(score)
-        max_score = max(max_score, score)
+        test_scores.append(total_score)
+        max_score = max(max_score, total_score)
 
         if (episode + 1) % window_size == 0:
             mean_score = np.mean(test_scores[-window_size:])
             mean_scores.append(mean_score)
-            logging.info(f"[TEST] Ep {episode+1} - Score: {score}, Mean Score: {mean_score:.2f}, Max Score: {max_score}")
+            logging.info(f"[TEST] Ep {episode+1} - Score: {total_score}, Mean Score: {mean_score:.2f}, Max Score: {max_score}")
 
     logging.info(f"Testing completed. Max test score: {max_score}")
     pygame.quit()
