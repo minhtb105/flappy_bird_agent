@@ -5,7 +5,7 @@ BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 
 # Pygame setup
-WIDTH = 288
+WIDTH = 512
 HEIGHT = 512
 FPS = 60
 
@@ -28,8 +28,8 @@ BIRD_ANGLE = 0
 PIPE_WIDTH = 52
 PIPE_SPEED = 3
 PIPE_GAP_SIZE = 100  # Distance between top pipe and bottom pipe
-PIPE_START_OFFSET = 140 # Offset for the first pipe
-PIPE_SPACING = 140
+PIPE_START_OFFSET = 250 # Offset for the first pipe
+PIPE_SPACING = 200
 NUM_PIPES = 2  # Number of pipes on the screen at a time
 
 NUM_RAYS = 180

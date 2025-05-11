@@ -27,6 +27,10 @@ TEMP_DECAY_RESET = 0.99
 MAX_REPLAY_SIZE = 1000000
 MIN_REPLAY_SIZE = 1000
 SAMPLES_PER_INSERT_RATIO = 32
+ALPHA_INIT = 0.6  # Control the amount of prioritization
+ALPHA_FINAL = 0.2 
+ALPHA_DECAY = 0.99999 
+BETA = 0.4  # Importance sampling exponent
 
 # Training configurations
 LOAD_MODEL = True  # Load from a saved checkpoint if available

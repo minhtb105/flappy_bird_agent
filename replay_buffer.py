@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from configs.dqn_configs import FRAME_STACK, MAX_REPLAY_SIZE, BATCH_SIZE, MIN_REPLAY_SIZE
+from configs.dqn_configs import *
 from collections import deque
 import logging
 import time
@@ -35,12 +35,13 @@ def log_error_stats(step, interval=1000):
 
 
 class PrioritizedReplayBuffer:
-    def __init__(self, capacity=MAX_REPLAY_SIZE, alpha=0.6):
+    def __init__(self, capacity=MAX_REPLAY_SIZE, alpha=ALPHA_INIT, beta=BETA):
         self.capacity = capacity
         self.memory = deque(maxlen=capacity)
         self.position = 0
         self.priorities = np.zeros((capacity,), dtype=np.float32)
         self.alpha = alpha
+        self.beta = beta
         logging.debug(f"Initialized PER buffer with capacity {capacity} and alpha {alpha}")
 
     def store_transition(self, state, action, reward, next_state):
@@ -56,7 +57,7 @@ class PrioritizedReplayBuffer:
             error_counts["store_transition"] += 1
             log_once_per("store_transition", f"Store transition error: {e}")
 
-    def sample(self, batch_size=BATCH_SIZE, beta=0.4):
+    def sample(self, batch_size=BATCH_SIZE):
         if len(self.memory) < MIN_REPLAY_SIZE:
             log_once_per("insufficient_memory", "Insufficient replay memory to sample from")
             error_counts["insufficient_memory"] += 1
@@ -78,7 +79,7 @@ class PrioritizedReplayBuffer:
             actions = torch.tensor(actions, dtype=torch.long)
             rewards = torch.tensor(rewards, dtype=torch.float32)
 
-            weights = (len(self.memory) * probabilities[indices]) ** (-beta)
+            weights = (len(self.memory) * probabilities[indices]) ** (-self.beta)
             weights /= weights.max()
             weights = torch.tensor(weights, dtype=torch.float32)
 
@@ -94,7 +95,7 @@ class PrioritizedReplayBuffer:
         try:
             td_errors = np.clip(td_errors, -50, 50)
             td_errors = np.nan_to_num(td_errors, nan=1.0, posinf=10.0, neginf=-10.0)
-            self.priorities[indices] = np.abs(td_errors) + 1e-3
+            self.priorities[indices] = np.abs(td_errors) + 1e-6
             std_dev = np.std(td_errors)
             if std_dev > 100:
                 logging.warning(f"TD error variance too high: {std_dev:.2f}")
@@ -102,6 +103,13 @@ class PrioritizedReplayBuffer:
         except Exception as e:
             error_counts["update_priorities"] += 1
             log_once_per("update_priorities", f"Update priorities error: {e}")
+
+    def decay_alpha(self, steps_done):
+        """Exponential decay of alpha."""
+        old_alpha = self.alpha
+        self.alpha = max(ALPHA_FINAL, old_alpha * np.exp(-ALPHA_DECAY * steps_done))
+        if steps_done % 10000 == 0:
+            logging.info(f"Alpha decayed from {old_alpha:.4f} to {self.alpha:.4f} at step {steps_done}")
 
     def to_torch_dict(self):
         try:

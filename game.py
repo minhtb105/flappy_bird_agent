@@ -241,7 +241,7 @@ class FlappyBirdPygame:
             return reward, self.is_game_over, self.score  # Game over
 
         # Penalty for staying too long without scoring
-        if self.steps > 100 and self.score == 0:
+        if self.steps > 5 and self.score == 0:
             reward -= 1  # discourage idle survival
 
         self.update_ui()

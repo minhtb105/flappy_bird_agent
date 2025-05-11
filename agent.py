@@ -123,6 +123,8 @@ class FlappyBirdAgent:
         if len(self.replay_buffer.memory) < MIN_REPLAY_SIZE:
             return
 
+        self.replay_buffer.decay_alpha(self.train_steps)
+
         try:
             sample = self.replay_buffer.sample()
             if sample is None:
@@ -144,7 +146,7 @@ class FlappyBirdAgent:
             self.td_errors.append(td_errors.abs().mean().item())
             self.replay_buffer.update_priorities(indices, td_errors.abs().detach().cpu().numpy())
 
-            loss = torch.log(torch.cosh(q_values - target_q_values)).mean()
+            loss = (weights * torch.log(torch.cosh(td_errors))).mean()
             self.losses.append(loss.item())
 
             self.optimizer.zero_grad()

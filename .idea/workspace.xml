@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="- Replaced small survival reward with dynamic private zone reward to prevent idle survival">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/game_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/game_configs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
-    </list>
+    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="small refactor" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -110,7 +106,7 @@
       <workItem from="1746421751182" duration="115000" />
       <workItem from="1746449614768" duration="904000" />
       <workItem from="1746551159877" duration="206000" />
-      <workItem from="1746844529963" duration="1787000" />
+      <workItem from="1746844529963" duration="2071000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
       <option name="closed" value="true" />
@@ -280,7 +276,15 @@
       <option name="project" value="LOCAL" />
       <updated>1746844811396</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="small refactor">
+      <option name="closed" value="true" />
+      <created>1746846658588</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1746846658588</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -316,7 +320,8 @@
     <MESSAGE value="add assert debug for traning, small fixes in game and visualization" />
     <MESSAGE value="ignore debug_log.txt, clean_log.txt to avoid issues" />
     <MESSAGE value="- Replaced small survival reward with dynamic private zone reward to prevent idle survival" />
-    <option name="LAST_COMMIT_MESSAGE" value="- Replaced small survival reward with dynamic private zone reward to prevent idle survival" />
+    <MESSAGE value="small refactor" />
+    <option name="LAST_COMMIT_MESSAGE" value="small refactor" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
