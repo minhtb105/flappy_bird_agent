@@ -27,7 +27,6 @@ def log_error_stats(step, message, interval=1000):
 
 # Error counter
 error_counts = {
-    "action_selection_failure": 0,
     "game_step": 0,
     "training_step": 0,
 }
@@ -64,8 +63,6 @@ def train_loop():
                 with torch.no_grad():
                     action = agent.choose_action(state_tensor)
             except Exception as e:
-                error_counts["action_selection_failure"] += 1
-                log_error_stats(steps_done, f"Action selection failed: {e}")
                 break
 
             action_one_hot = [0, 1] if action == 1 else [1, 0]
@@ -74,8 +71,6 @@ def train_loop():
                 reward, game_over, score = game.step(action_one_hot)
                 total_score += score
             except Exception as e:
-                error_counts["game_step"] += 1
-                log_error_stats("game_step", f"Game step failed: {e}")
                 break
 
             next_state = game.get_state()
@@ -88,8 +83,6 @@ def train_loop():
                 agent.insert_count += 1
                 agent.train()
             except Exception as e:
-                error_counts["training_step"] += 1
-                log_error_stats(steps_done, f"Training step failed: {e}")
                 break
 
             game.is_game_over = game_over
@@ -103,7 +96,6 @@ def train_loop():
             if steps_done % SAVE_INTERVAL == 0 and steps_done != 0:
                 torch.save(agent.policy_net.state_dict(), "models/policy_net.pth")
                 torch.save(agent.target_net.state_dict(), "models/target_net.pth")
-                logging.info(f"Saved model at step {steps_done}")
 
             if game_over:
                 break
@@ -113,7 +105,6 @@ def train_loop():
 
         if (episode + 1) % 50 == 0:
             mean_scores.append(np.mean(scores[-50:]))
-            logging.info(f"Episode {episode+1}: Score = {total_score}, Mean Score = {mean_scores[-1]:.2f}, Wins = {consecutive_wins}")
 
         if game.is_game_over or total_score == 0:
             is_winning_episode = False
@@ -127,7 +118,6 @@ def train_loop():
         if episode % SAVE_REPLAY_BUFFER_INTERVAL == 0 and episode != 0:
             buffer_dict = agent.replay_buffer.to_torch_dict()
             torch.save(buffer_dict, "models/replay_buffer.pt")
-            logging.info("Saved replay buffer.")
 
         if episode % TRACK_TEMPERATURE_DECAY_INTERVAL == 0:
             temperatures.append(agent.temp)
@@ -147,7 +137,8 @@ def train_loop():
 
         game.reset()
         
-    logging.info("Training Completed")
+    logging.info(f"Training completed. Max test score: {max_score}")   
+       
     pygame.quit()
 
 def test_loop(num_episodes=100, max_steps_per_episode=1000, window_size=10):
@@ -185,7 +176,6 @@ def test_loop(num_episodes=100, max_steps_per_episode=1000, window_size=10):
         if (episode + 1) % window_size == 0:
             mean_score = np.mean(test_scores[-window_size:])
             mean_scores.append(mean_score)
-            logging.info(f"[TEST] Ep {episode+1} - Score: {total_score}, Mean Score: {mean_score:.2f}, Max Score: {max_score}")
 
     logging.info(f"Testing completed. Max test score: {max_score}")
     pygame.quit()
@@ -211,8 +201,6 @@ def clean_log(input_path='logs/debug_log.txt', output_path='logs/clean_log.txt')
 
         with open(output_path, 'w') as f:
             f.writelines(cleaned_lines)
-
-        logging.info(f"Cleaned debug log: {len(lines)} → {len(cleaned_lines)} lines written to {output_path}")
     except Exception as e:
         logging.error(f"[clean_log] Failed: {e}")
 

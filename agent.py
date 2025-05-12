@@ -21,11 +21,19 @@ error_counts = {
     "update_temperature, failure": 0,
 }
 
-def log_once_per(error_key: str, message: str, step: int, interval_seconds: int = 500, interval_steps: int = 1000):
+def log_once_per(error_key: str, message: str, step: int, interval_seconds: int = 500, interval_steps: int = 1000, level: str = "error"):
     now = time.time()
     if error_key not in last_logged_errors or (now - last_logged_errors[error_key]) > interval_seconds:
-        logging.error(message)
         last_logged_errors[error_key] = now
+        
+        if level == "warning":
+            logging.warning(message)
+        elif level == "info":
+            logging.info(message)
+        elif level == "debug":
+            logging.debug(message)
+        else:
+            logging.error(message)
 
     if step % interval_steps == 0 and error_counts[error_key] > 0:
         logging.info(f"[{error_key}] occurred {error_counts[error_key]} times in last {interval_steps} steps")
@@ -108,7 +116,6 @@ class FlappyBirdAgent:
         try:
             old_temp = self.temp
             self.temp = max(self.temp_min, self.temp * self.temp_decay)
-            logging.debug(f"[temperature] Decayed from {old_temp:.6f} to {self.temp:.6f}")
         except Exception as e:
             error_counts["update_temperature"] += 1
             log_once_per("update_temperature", f"[temperature] Exception: {str(e)}", self.train_steps)
@@ -161,7 +168,6 @@ class FlappyBirdAgent:
             total_norm = total_norm ** 0.5
             self.grad_norms.append(total_norm)
 
-            logging.debug(f"[train] Loss: {loss.item():.6f}, GradNorm: {total_norm:.4f}, TD-error: {td_errors.abs().mean().item():.4f}")
             self.optimizer.step()
 
         except Exception as e:

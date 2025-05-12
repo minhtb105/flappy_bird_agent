@@ -10,10 +10,27 @@ logging.basicConfig(filename='logs/debug_log.txt', level=logging.DEBUG, format='
 
 last_logged_errors = {}
 
-def log_once_per(error_key: str, message: str, interval_seconds: int = 500):
+def log_once_per(error_key: str, message: str, interval_seconds: int = 500, level: str = "error"):
+    """
+    Log a message once every `interval_seconds` seconds per unique error_key.
+
+    Args:
+        error_key (str): Unique key to identify the error type.
+        message (str): Message to log.
+        interval_seconds (int): Cooldown time before re-logging same key.
+        level (str): Log level: 'error', 'warning', 'info', or 'debug'.
+    """
     current_time = time.time()
     if error_key not in last_logged_errors or (current_time - last_logged_errors[error_key]) > interval_seconds:
-        logging.error(message)
+        if level == "warning":
+            logging.warning(message)
+        elif level == "info":
+            logging.info(message)
+        elif level == "debug":
+            logging.debug(message)
+        else:
+            logging.error(message)
+            
         last_logged_errors[error_key] = current_time
 
 # Error counter
@@ -24,6 +41,7 @@ error_counts = {
     "to_torch_dict": 0,
     "load_from_dict": 0,
     "insufficient_memory": 0,
+    "high_td_error": 0,
 }
 
 def log_error_stats(step, interval=1000):
@@ -98,8 +116,7 @@ class PrioritizedReplayBuffer:
             self.priorities[indices] = np.abs(td_errors) + 1e-6
             std_dev = np.std(td_errors)
             if std_dev > 100:
-                logging.warning(f"TD error variance too high: {std_dev:.2f}")
-            logging.debug(f"Updated priorities for {len(indices)} indices")
+                log_once_per("high_td_error", f"High TD error variance: {std_dev:.2f}", interval_seconds=600, level="warning")
         except Exception as e:
             error_counts["update_priorities"] += 1
             log_once_per("update_priorities", f"Update priorities error: {e}")
