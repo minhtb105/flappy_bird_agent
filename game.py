@@ -55,6 +55,8 @@ class FlappyBirdPygame:
         self.pipes = []
         self.ray_distances = np.zeros(NUM_RAYS)
 
+        self.steps_on_high = 0
+
         self.show_start_images()
         self.reset()
 
@@ -210,13 +212,19 @@ class FlappyBirdPygame:
 
         # Penalize staying at the top too long
         if self.bird_y < 100:
-            reward -= 0.5
+            self.steps_on_high += 1
+            if self.steps_on_high > 30:
+                reward -= 0.5  # Heavy penalty for staying at the top too long
+            reward -= 0.3  # Light penalty for each step at the top
+        else:
+            self.steps_on_high = 0  # Reset counter if bird is not at the top
 
         # Move pipes
         for pipe in self.pipes:
             pipe.x -= PIPE_SPEED
 
-        reward += self.check_private_zone_reward()
+        if self.y >= 100:
+            reward += self.check_private_zone_reward()
 
         # Check if bird has passed a pipe
         for pipe in self.pipes:
@@ -241,7 +249,7 @@ class FlappyBirdPygame:
             return reward, self.is_game_over, self.score  # Game over
 
         # Penalty for staying too long without scoring
-        if self.steps > 5 and self.score == 0:
+        if self.steps > 100 and self.score == 0:
             reward -= 1  # discourage idle survival
 
         self.update_ui()
