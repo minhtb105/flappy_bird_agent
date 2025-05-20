@@ -35,12 +35,6 @@ def log_once_per(error_key: str, message: str, interval_seconds: int = 500, leve
 
 # Error counter
 error_counts = {
-    "store_transition": 0,
-    "sample": 0,
-    "update_priorities": 0,
-    "to_torch_dict": 0,
-    "load_from_dict": 0,
-    "insufficient_memory": 0,
     "high_td_error": 0,
 }
 
@@ -72,14 +66,10 @@ class PrioritizedReplayBuffer:
             self.priorities[self.position] = max_priority
             self.position = (self.position + 1) % self.capacity
         except Exception as e:
-            error_counts["store_transition"] += 1
-            log_once_per("store_transition", f"Store transition error: {e}")
+            print(e)
 
     def sample(self, batch_size=BATCH_SIZE):
         if len(self.memory) < MIN_REPLAY_SIZE:
-            log_once_per("insufficient_memory", "Insufficient replay memory to sample from")
-            error_counts["insufficient_memory"] += 1
-            
             return None
 
         try:
@@ -104,27 +94,29 @@ class PrioritizedReplayBuffer:
             return states, actions, rewards, next_states, indices, weights
 
         except Exception as e:
-            error_counts["sample"] += 1
-            log_once_per("sample", f"Sample error: {e}")
+            print(e)
             
             return None
 
     def update_priorities(self, indices, td_errors):
         try:
-            td_errors = np.clip(td_errors, -50, 50)
+            td_errors = np.clip(td_errors, -10, 10)
+            
             td_errors = np.nan_to_num(td_errors, nan=1.0, posinf=10.0, neginf=-10.0)
-            self.priorities[indices] = np.abs(td_errors) + 1e-6
+            
+            smoothed_priorities = np.sqrt(np.abs(td_errors) + 1e-6)
+            self.priorities[indices] = smoothed_priorities
+
             std_dev = np.std(td_errors)
             if std_dev > 100:
                 log_once_per("high_td_error", f"High TD error variance: {std_dev:.2f}", interval_seconds=600, level="warning")
         except Exception as e:
-            error_counts["update_priorities"] += 1
-            log_once_per("update_priorities", f"Update priorities error: {e}")
+            print(e)
 
     def decay_alpha(self, steps_done):
         """Exponential decay of alpha."""
         old_alpha = self.alpha
-        self.alpha = max(ALPHA_FINAL, old_alpha * np.exp(-ALPHA_DECAY * steps_done))
+        self.alpha = ALPHA_FINAL + (ALPHA_INIT - ALPHA_FINAL) * np.exp(-ALPHA_DECAY * steps_done)
         if steps_done % 10000 == 0:
             logging.info(f"Alpha decayed from {old_alpha:.4f} to {self.alpha:.4f} at step {steps_done}")
 
@@ -140,8 +132,7 @@ class PrioritizedReplayBuffer:
                 'position': self.position
             }
         except Exception as e:
-            error_counts["to_torch_dict"] += 1
-            log_once_per("to_torch_dict", f"to_torch_dict error: {e}")
+            print(e)
             
             return {}
 
@@ -162,7 +153,7 @@ class PrioritizedReplayBuffer:
 
             if len(self.memory) > self.capacity:
                 logging.warning("Loaded memory exceeds capacity")
+                
             logging.debug(f"Loaded {len(self.memory)} transitions from saved state")
         except Exception as e:
-            error_counts["load_from_dict"] += 1
-            log_once_per("load_from_dict", f"Load from torch dict error: {e}")
+            print(e)
