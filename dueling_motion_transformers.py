@@ -24,13 +24,14 @@ class LightweightAttention(nn.Module):
         B, S, D = x.size()  # B: batch size, S: sequence length, D: embedding dimension
         assert D == self.d_model, f"Expected input dimension {self.d_model}, but got {D}"
         
+        x_norm = self.norm(x)  # LayerNorm before attention
         residual = x  # Save input for skip connection
         
         # Linear projections
-        Q = self.query(x)
-        K = self.key(x)
-        V = self.value(x)
-        
+        Q = self.query(x_norm)
+        K = self.key(x_norm)
+        V = self.value(x_norm)
+
         # Split into multiple heads
         Q = Q.view(B, S, self.num_heads, self.head_dim).transpose(1, 2)  # (B, num_heads, S, head_dim)
         K = K.view(B, S, self.num_heads, self.head_dim).transpose(1, 2)
@@ -57,6 +58,7 @@ class LightweightAttention(nn.Module):
 class DuelingMotionTransformer(nn.Module):
     def __init__(self, state_dim, action_dim, seq_length=FRAME_STACK, d_model=EMBED_DIM, n_heads=NUM_HEADS):
         super(DuelingMotionTransformer, self).__init__()
+        self.training = True
         self.seq_length = seq_length
         self.d_model = d_model
         
@@ -64,6 +66,8 @@ class DuelingMotionTransformer(nn.Module):
         
         # Learnable positional embeddings
         self.positional_encoding = nn.Parameter(torch.randn(seq_length, d_model))
+        
+        self.input_dropout = nn.Dropout(p=0.05)
         
         self.attention_layer = LightweightAttention(d_model)
 
@@ -96,12 +100,18 @@ class DuelingMotionTransformer(nn.Module):
         
         x = self.embedding(x)  # (batch_size, seq_length, d_model)
         
+        if self.training:
+            x = self.input_dropout(x)  # Apply dropout only during training
+        
         # Add positional encoding
         pos_enc = self.positional_encoding.unsqueeze(0).expand(batch_size, -1, -1)  # (batch_size, seq_length, d_model)
         x = x + pos_enc 
         
-        x = self.attention_layer.forward(x)  # (batch_size, seq_length, d_model)
+        x = self.attention_layer(x)  # (batch_size, seq_length, d_model)
+        
+        residual_ffn = x
         x = self.feedforward(x)  # (batch_size, seq_length, d_model)
+        x = x + residual_ffn
         
         # Global Average Pooling over sequence length
         x = x.mean(dim=1)  # (batch_size, d_model)
