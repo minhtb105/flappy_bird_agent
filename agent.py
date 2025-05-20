@@ -1,4 +1,5 @@
 import random
+import numpy as np
 import torch
 import torch.optim as optim
 import time
@@ -16,9 +17,8 @@ error_counts = {
     "q_nan": 0,
     "invalid_probs": 0,
     "train_failure": 0,
-    "choose_action_failure": 0,
     "store_transition_failure": 0,
-    "update_temperature, failure": 0,
+    "choose_action_failure": 0,
 }
 
 def log_once_per(error_key: str, message: str, step: int, interval_seconds: int = 500, interval_steps: int = 1000, level: str = "error"):
@@ -54,19 +54,19 @@ class FlappyBirdAgent:
         self.gamma = GAMMA
         self.lr = LEARNING_RATE
         self.batch_size = BATCH_SIZE
-        self.temp = TEMP_INIT
-        self.temp_min = TEMP_MIN
-        self.temp_decay = TEMP_DECAY
+        self.epsilon = EPSILON
 
         self.insert_count = 0
         self.samples_per_insert = SAMPLES_PER_INSERT_RATIO
 
         self.replay_buffer = PrioritizedReplayBuffer(MAX_REPLAY_SIZE)
 
-        self.policy_net = DuelingMotionTransformer(state_dim=state_dim, action_dim=action_dim)
-        self.target_net = DuelingMotionTransformer(state_dim=state_dim, action_dim=action_dim)
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.policy_net = DuelingMotionTransformer(state_dim=state_dim, action_dim=action_dim).to(self.device)
+        self.target_net = DuelingMotionTransformer(state_dim=state_dim, action_dim=action_dim).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
+        self.use_soft_update = True
 
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
 
@@ -76,35 +76,23 @@ class FlappyBirdAgent:
         self.max_q_values = [0]
         self.min_q_values = [0]
         self.q_values = [0]
+        self.q_diffs = [0]
         self.train_steps = 0
-        self.action_counter = {0: 0, 1: 0}  # Count action usage for debug
+        self.epsilons = [EPSILON]
 
     def choose_action(self, state, explore=True):
         try:
             with torch.no_grad():
+                state = state.to(self.device)
                 q_values = self.policy_net(state).squeeze(0)
 
             if not explore:
                 return torch.argmax(q_values).item()
 
-            if torch.isnan(q_values).any():
-                error_counts["q_nan"] += 1
-                log_once_per("q_nan", f"[choose_action] NaN in Q-values: {q_values.tolist()}", self.train_steps)
-
-            q_values = torch.clamp(q_values, -50, 50)
-            exp_q = torch.exp(q_values / (self.temp + 1e-6))
-            probs = exp_q / (exp_q.sum() + 1e-6)
-
-            if torch.isnan(probs).any() or probs.sum().item() <= 0:
-                error_counts["invalid_probs"] += 1
-                log_once_per("invalid_probs", f"[choose_action] Invalid probs: {probs.tolist()} | Q: {q_values.tolist()} | temp: {self.temp:.4f}", self.train_steps)
-                
+            if random.random() < self.epsilon:
                 return random.randint(0, self.action_dim - 1)
 
-            action = torch.multinomial(probs, 1).item()
-            self.action_counter[action] += 1
-
-            return action
+            return torch.argmax(q_values).item()
 
         except Exception as e:
             error_counts["choose_action"] += 1
@@ -112,13 +100,10 @@ class FlappyBirdAgent:
             
             return random.randint(0, self.action_dim - 1)
 
-    def update_temperature(self):
-        try:
-            old_temp = self.temp
-            self.temp = max(self.temp_min, self.temp * self.temp_decay)
-        except Exception as e:
-            error_counts["update_temperature"] += 1
-            log_once_per("update_temperature", f"[temperature] Exception: {str(e)}", self.train_steps)
+    def update_epsilon(self):
+        self.epsilon = max(self.epsilon * EPSILON_DECAY, EPSILON_MIN)
+        self.epsilons.append(self.epsilon)
+
 
     def train(self):
         self.train_steps += 1
@@ -130,7 +115,8 @@ class FlappyBirdAgent:
         if len(self.replay_buffer.memory) < MIN_REPLAY_SIZE:
             return
 
-        self.replay_buffer.decay_alpha(self.train_steps)
+        if self.train_steps % 10000 == 0 and self.train_steps != 0:
+            self.replay_buffer.decay_alpha(self.train_steps)
 
         try:
             sample = self.replay_buffer.sample()
@@ -138,7 +124,15 @@ class FlappyBirdAgent:
                 return
 
             states, actions, rewards, next_states, indices, weights = sample
+            states = states.to(self.device)
+            actions = actions.to(self.device)
+            rewards = rewards.to(self.device)
+            next_states = next_states.to(self.device)
+            weights = weights.to(self.device)
             q_values = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+            q_targets = self.target_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+            diff = torch.abs(q_values - q_targets).mean().item()
+            self.q_diffs.append(diff)
 
             self.q_values.append(q_values.mean().item())
             self.max_q_values.append(q_values.max().item())
@@ -169,10 +163,72 @@ class FlappyBirdAgent:
             self.grad_norms.append(total_norm)
 
             self.optimizer.step()
+            del loss, q_values, td_errors
+            torch.cuda.empty_cache()
 
         except Exception as e:
             error_counts["train_failure"] += 1
             log_once_per("train_failure", f"[train] Training failed: {str(e)}", self.train_steps)
+
+    def log_to_tensorboard(self, writer, step):
+        if self.losses and step % 10 == 0:
+            writer.add_scalar('Train/Loss', self.losses[-1], step)
+
+        if self.td_errors and step % 10 == 0:
+            writer.add_scalar("Train/TD_Error", self.td_errors[-1], step)
+
+        if self.grad_norms and step % 10 == 0:
+            writer.add_scalar('Train/GradNorm', self.grad_norms[-1], step)
+
+        if self.q_values and step % 10 == 0:
+            writer.add_scalar('Train/QValue', self.q_values[-1], step)
+
+        if self.max_q_values and self.min_q_values and step % 10 == 0:
+            writer.add_scalars("Train/QStats", {"q_max": self.max_q_values[-1], "q_min": self.min_q_values[-1]}, step)
+
+        if self.q_diffs and step % 10 == 0:
+            if self.use_soft_update:
+                writer.add_scalar("Train/Soft_Update/QDiff", self.q_diffs[-1], step)
+            else:
+                writer.add_scalar("Train/Hard_Update/QDiff", self.q_diffs[-1], step)
+
+        if self.epsilons and step % 10 == 0:
+            writer.add_scalar("Train/Epsilon", self.epsilons[-1], step)
+
+        # Priority alpha decay
+        if hasattr(self.replay_buffer, "alpha") and step % 10 == 0 and step > 0:
+            writer.add_scalar("Train/Replay_Buffer_Alpha", self.replay_buffer.alpha, step)
+
+        # Attention map as image
+        attn = self.policy_net.get_attention_weights()
+        if attn is not None and step % 300 == 0:
+            try:
+                import matplotlib.pyplot as plt
+                import io
+                import PIL.Image
+                fig, ax = plt.subplots()
+                ax.imshow(attn[0][0].cpu().detach().numpy(), cmap='viridis')
+                ax.set_title("Attention Heatmap")
+                ax.axis("off")
+
+                buf = io.BytesIO()
+                plt.savefig(buf, format='png')
+                buf.seek(0)
+                image = PIL.Image.open(buf)
+                image = np.array(image).transpose(2, 0, 1)[:3]  # CHW
+                writer.add_image("Train/Attention", image, step)
+                plt.close()
+            except Exception as e:
+                pass  # Avoid crash on image logging
+            
+        writer.flush()    
+            
+    def hard_update_target(self):
+        self.target_net.load_state_dict(self.policy_net.state_dict())
+
+    def soft_update_target(self, tau):
+       for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
+            target_param.data.copy_(tau * policy_param.data + (1.0 - tau) * target_param.data)
 
     def count_parameters(self):
         total = sum(p.numel() for p in self.policy_net.parameters())
@@ -180,25 +236,3 @@ class FlappyBirdAgent:
         print(f"Total parameters: {total:,}")
         print(f"Trainable parameters: {trainable:,}")
         logging.info(f"Total parameters: {total}, Trainable parameters: {trainable}")
-
-    def analyze_behavior(self):
-        try:
-            total = sum(self.action_counter.values())
-            if total == 0:
-                logging.warning("No actions taken yet.")
-                return
-
-            ratio_jump = self.action_counter[1] / total
-            ratio_nothing = self.action_counter[0] / total
-
-            logging.info(f"Action usage: Jump = {ratio_jump:.2%}, Nothing = {ratio_nothing:.2%}")
-
-            if ratio_jump > 0.95:
-                logging.warning("Agent strongly prefers to JUMP. May be stuck in biased behavior.")
-            elif ratio_nothing > 0.95:
-                logging.warning("Agent avoids jumping almost entirely. Check Q-value balance or reward bias.")
-
-            if self.q_values:
-                logging.debug(f"Latest Q-value mean: {self.q_values[-1]:.4f}, max: {self.max_q_values[-1]}, min: {self.min_q_values[-1]}")
-        except Exception as e:
-            logging.error(f"analyze_behavior failed: {e}")
