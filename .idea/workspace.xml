@@ -4,12 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="add penalty for staying too long without scoring">
+    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="small changes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/dqn_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/dqn_configs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/replay_buffer.py" beforeDir="false" afterPath="$PROJECT_DIR$/replay_buffer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/visualization_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualization_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -117,6 +113,7 @@
       <workItem from="1746956060622" duration="194000" />
       <workItem from="1747039552948" duration="412000" />
       <workItem from="1747149893394" duration="1159000" />
+      <workItem from="1747706755160" duration="1435000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
       <option name="closed" value="true" />
@@ -318,7 +315,55 @@
       <option name="project" value="LOCAL" />
       <updated>1747039959719</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="[feat]: add rays_cast numba and small noise angle">
+      <option name="closed" value="true" />
+      <created>1747707114544</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1747707114544</updated>
+    </task>
+    <task id="LOCAL-00027" summary="increase gravity, reduce num rays">
+      <option name="closed" value="true" />
+      <created>1747707164896</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1747707164896</updated>
+    </task>
+    <task id="LOCAL-00028" summary="[feat] add normalize layer and small dropout after rays input">
+      <option name="closed" value="true" />
+      <created>1747707218209</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1747707218209</updated>
+    </task>
+    <task id="LOCAL-00029" summary="change choose action method from Boltzmann exploration to epsilon greedy">
+      <option name="closed" value="true" />
+      <created>1747707563540</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1747707563540</updated>
+    </task>
+    <task id="LOCAL-00030" summary="[feat]: add epsilon parameter">
+      <option name="closed" value="true" />
+      <created>1747708012942</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1747708012942</updated>
+    </task>
+    <task id="LOCAL-00031" summary="small changes">
+      <option name="closed" value="true" />
+      <created>1747708051961</created>
+      <option name="number" value="00031" />
+      <option name="presentableId" value="LOCAL-00031" />
+      <option name="project" value="LOCAL" />
+      <updated>1747708051961</updated>
+    </task>
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -336,8 +381,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="initial commit" />
-    <MESSAGE value="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization" />
     <MESSAGE value="Game Logic, State Representation, and Training Improvements&#10;&#10;- Updated scoring mechanism to award points when the bird passes a pipe.&#10;- Improved collision detection for accurate game state updates.&#10;- Enhanced state representation with bird position, velocity, and pipe positions.&#10;- Added features to encourage the bird to stay near the center of the gap.&#10;- Discussed and implemented replay buffer management for efficient training.&#10;- Enabled saving and loading of the replay buffer for flexible retraining.&#10;- Adjusted epsilon decay to balance exploration and exploitation.&#10;- Evaluated and fine-tuned the learning rate for optimal convergence." />
     <MESSAGE value=" Add Private Zone Detection and Pipe Rectangles for Spatial Awareness&#10;&#10;- Implemented private zone logic based on bird dimensions and configurable radius (x)&#10;- Added top_rect and bottom_rect to Pipe class for accurate position tracking and collision distance&#10;- Updated ray casting and reward function to penalize if obstacles are within private zone radius&#10;- Slight reward bonus when private zone is clear to encourage safe flight paths" />
     <MESSAGE value=" Fix tensor conversion performance and correct choose_action usage&#10;&#10;(Improve tensor creation speed by using np.array, remove redundant .item() call after choosing action.)" />
@@ -345,7 +388,6 @@
     <MESSAGE value="chore: switch buffer persistence to torch.save and torch.load" />
     <MESSAGE value="perf(buffer): improve performance by storing replay buffer as torch tensors" />
     <MESSAGE value="feat: add multi-head attention to encoder" />
-    <MESSAGE value="small changes" />
     <MESSAGE value="feat: add visualization utilities for debugging" />
     <MESSAGE value="fix: draw private zone" />
     <MESSAGE value="optimize import" />
@@ -358,7 +400,13 @@
     <MESSAGE value="feat(replay_buffer): implement alpha decay and importance-sampling weights&#10;&#10;- Added exponential decay for priority alpha (controls prioritization intensity)&#10;- Integrated sampling importance weights (beta) into PER&#10;- Applied weights to TD loss to correct bias from prioritized sampling&#10;- Logged alpha decay periodically for monitoring" />
     <MESSAGE value="remove redundant log" />
     <MESSAGE value="add penalty for staying too long without scoring" />
-    <option name="LAST_COMMIT_MESSAGE" value="add penalty for staying too long without scoring" />
+    <MESSAGE value="[feat]: add rays_cast numba and small noise angle" />
+    <MESSAGE value="increase gravity, reduce num rays" />
+    <MESSAGE value="[feat] add normalize layer and small dropout after rays input" />
+    <MESSAGE value="change choose action method from Boltzmann exploration to epsilon greedy" />
+    <MESSAGE value="[feat]: add epsilon parameter" />
+    <MESSAGE value="small changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="small changes" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

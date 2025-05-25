@@ -15,15 +15,15 @@ NUM_HEADS = 4  # num of attention heads
 GLOBAL_CLIP_NORM = 1  # Globally normalized clipping of gradient
 WEIGHT_DECAY = 0.0001  # Weight decay for AdamW optimizer
 
-FRAME_STACK = 4  # Size of short-term (episodic) memory
+FRAME_STACK = 10  # Size of short-term (episodic) memory
 
 # Exploration parameters
 EPSILON = 1 # Epsilon for epsilon-greedy exploration
-EPSILON_DECAY = 0.999995  # Decay rate for epsilon
+EPSILON_DECAY = 0.9999995  # Decay rate for epsilon
 EPSILON_MIN = 0.05  # Minimum epsilon value
 
 # Replay Memory
-MAX_REPLAY_SIZE = 300000
+MAX_REPLAY_SIZE = 1000000
 MIN_REPLAY_SIZE = 1000
 SAMPLES_PER_INSERT_RATIO = 32
 ALPHA_INIT = 0.58  # Control the amount of prioritization

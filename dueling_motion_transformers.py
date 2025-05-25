@@ -61,6 +61,7 @@ class DuelingMotionTransformer(nn.Module):
         self.training = True
         self.seq_length = seq_length
         self.d_model = d_model
+        self.n_heads = n_heads
         
         self.embedding = nn.Linear(state_dim, d_model)
         
@@ -69,7 +70,7 @@ class DuelingMotionTransformer(nn.Module):
         
         self.input_dropout = nn.Dropout(p=0.05)
         
-        self.attention_layer = LightweightAttention(d_model)
+        self.attention_layer = LightweightAttention(d_model, n_heads)
 
         # Feedforward block + LayerNorm
         self.feedforward = nn.Sequential(

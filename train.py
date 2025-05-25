@@ -7,14 +7,14 @@ import argparse
 from torch.utils.tensorboard import SummaryWriter
 from agent import FlappyBirdAgent 
 from configs.dqn_configs import *
-from configs.game_configs import NUM_RAYS
+from configs.game_configs import *
 from game import FlappyBirdPygame
 from visualization_utils import *
 
 
 # Initialize game and agent
 game = FlappyBirdPygame()
-state_dim = NUM_RAYS + 3
+state_dim = NUM_RAYS 
 num_actions = 2  # [Do nothing, Jump]
 agent = FlappyBirdAgent(state_dim, num_actions)
 
@@ -22,10 +22,36 @@ agent.count_parameters()
 
 writer = SummaryWriter("plots/")
 
-def train_loop():
+def train_loop(config=None, num_episodes=NUM_EPISODES, visualize=True):
+    """
+    Train the agent with custom reward/penalty shaping parameters.
+
+    Args:
+        config (dict): {
+            "reward_pass_pipe": float,
+            "penalty_death": float,
+            "reward_alive": float,
+            "reward_center_gap": float,
+            "penalty_edge_height": float,
+            "penalty_high_alt": float,
+            "reward_medium_alt": float,
+        }
+        num_episodes (int): number of episodes to train
+    """
+    if config:
+        for param, value in config.items():
+            if hasattr(game, param):
+                game.__dict__[param] = value
+            elif hasattr(agent, param):
+                agent.__dict__[param] = value
+            elif hasattr(agent.replay_buffer, param):
+                agent.replay_buffer.__dict__[param] = value
+            
+    game.visualize = visualize
+
     max_score, consecutive_wins, steps = 0, 0, 0
 
-    for episode in range(NUM_EPISODES):
+    for episode in range(num_episodes):
         game.reset()
         state = game.get_state()
         state_seq = deque([state] * FRAME_STACK, maxlen=FRAME_STACK)
@@ -70,7 +96,8 @@ def train_loop():
 
         max_score = max(max_score, total_score)
 
-        agent.log_to_tensorboard(writer, episode)
+        if visualize:
+            agent.log_to_tensorboard(writer, episode)
 
         if game.is_game_over or total_score == 0:
             is_winning_episode = False
@@ -86,9 +113,8 @@ def train_loop():
             break
         
     logging.info(f"Training completed. Max test score: {max_score}") 
-    writer.close()
-    pygame.display.quit()  
-    pygame.quit()
+    
+    return game.rewards
 
 def test_loop(num_episodes=100, max_steps_per_episode=1000):
     max_score = 0
@@ -162,5 +188,8 @@ if __name__ == "__main__":
         test_loop()
         
     agent.analyze_behavior()
-    logging.shutdown()     # Ensure all logs are flushed
-    sys.exit(0)            # Exit the entire program safely
+    writer.close()
+    pygame.display.quit()  
+    pygame.quit()
+    logging.shutdown() # Ensure all logs are flushed
+    sys.exit(0) # Exit the entire program safely
