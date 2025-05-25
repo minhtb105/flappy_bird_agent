@@ -227,7 +227,7 @@ class FlappyBirdAgent:
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
     def soft_update_target(self, tau):
-       for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
+        for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):
             target_param.data.copy_(tau * policy_param.data + (1.0 - tau) * target_param.data)
 
     def count_parameters(self):
