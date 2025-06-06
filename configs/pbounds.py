@@ -1,9 +1,7 @@
 motion_dynamic_bounds = {
-    'gravity': (0.1, 5),
-    'jump_strength': (-9.0, -1.0),
-    'drag': (0.1, 5),
-    'max_downward_speed': (0.5, 1.0),
-    'max_upward_speed': (-1.0, -0.5),
+    'gravity': (0.2, 1.2),
+    'jump_strength': (-3, -1),
+    'max_downward_speed': (6, 10),
 }
 
 reward_bounds = {
@@ -18,14 +16,17 @@ reward_bounds = {
 
 
 exploration_bounds = {
-    "epsilon_decay": (0.1, 1),
-    "epsilon": (1, 5),
-    "epsilon_min": (0.01, 0.6),
+    "temperature": (0.5, 1.5),
+    "temperature_min": (0.01, 0.1),
+    "temperature_decay": (0.99, 0.999995),
 }
     
 learning_bounds = {
     "learning_rate": (1e-5, 1e-3),
-    "optimizer": ['Adam', 'RMSprop', 'SGD'], 
+    "beta1": (0.85, 0.95),
+    "beta2": (0.98, 0.999),
+    "adam_epsilon": (1e-8, 1e-6),       
+    "weight_decay": (0.0, 1e-3),  
 }
     
 replay_bounds = {

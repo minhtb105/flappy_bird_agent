@@ -4,8 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="small changes">
+    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="move to assets folder">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/game_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/game_configs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/experiment_parameter_tuning.py" beforeDir="false" afterPath="$PROJECT_DIR$/experiment_parameter_tuning.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/visualization_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualization_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -70,8 +72,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-PY-251.23774.444" />
-        <option value="bundled-python-sdk-890ed5b35930-d9c5bdb153f4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.23774.444" />
+        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-PY-251.25410.159" />
+        <option value="bundled-python-sdk-e0ed3721d81e-36ea0e71a18c-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.25410.159" />
       </set>
     </attachedChunks>
   </component>
@@ -114,6 +116,9 @@
       <workItem from="1747039552948" duration="412000" />
       <workItem from="1747149893394" duration="1159000" />
       <workItem from="1747706755160" duration="1435000" />
+      <workItem from="1748184637606" duration="1072000" />
+      <workItem from="1748187520700" duration="585000" />
+      <workItem from="1748349803164" duration="76000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
       <option name="closed" value="true" />
@@ -363,7 +368,55 @@
       <option name="project" value="LOCAL" />
       <updated>1747708051961</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="[feat]: add parameter bounds for Bayesian Optimization">
+      <option name="closed" value="true" />
+      <created>1748184871378</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1748184871378</updated>
+    </task>
+    <task id="LOCAL-00033" summary="[feat]: add PCA for state space visualization">
+      <option name="closed" value="true" />
+      <created>1748184934988</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1748184934988</updated>
+    </task>
+    <task id="LOCAL-00034" summary="[feat]: add Bayesian optimization for parameter tuning">
+      <option name="closed" value="true" />
+      <created>1748184994127</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1748184994128</updated>
+    </task>
+    <task id="LOCAL-00035" summary="small change">
+      <option name="closed" value="true" />
+      <created>1748185014632</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1748185014632</updated>
+    </task>
+    <task id="LOCAL-00036" summary="move to assets folder">
+      <option name="closed" value="true" />
+      <created>1748185049613</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1748185049613</updated>
+    </task>
+    <task id="LOCAL-00037" summary="move to assets folder">
+      <option name="closed" value="true" />
+      <created>1748185067356</created>
+      <option name="number" value="00037" />
+      <option name="presentableId" value="LOCAL-00037" />
+      <option name="project" value="LOCAL" />
+      <updated>1748185067356</updated>
+    </task>
+    <option name="localTasksCounter" value="38" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -381,11 +434,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Game Logic, State Representation, and Training Improvements&#10;&#10;- Updated scoring mechanism to award points when the bird passes a pipe.&#10;- Improved collision detection for accurate game state updates.&#10;- Enhanced state representation with bird position, velocity, and pipe positions.&#10;- Added features to encourage the bird to stay near the center of the gap.&#10;- Discussed and implemented replay buffer management for efficient training.&#10;- Enabled saving and loading of the replay buffer for flexible retraining.&#10;- Adjusted epsilon decay to balance exploration and exploitation.&#10;- Evaluated and fine-tuned the learning rate for optimal convergence." />
-    <MESSAGE value=" Add Private Zone Detection and Pipe Rectangles for Spatial Awareness&#10;&#10;- Implemented private zone logic based on bird dimensions and configurable radius (x)&#10;- Added top_rect and bottom_rect to Pipe class for accurate position tracking and collision distance&#10;- Updated ray casting and reward function to penalize if obstacles are within private zone radius&#10;- Slight reward bonus when private zone is clear to encourage safe flight paths" />
-    <MESSAGE value=" Fix tensor conversion performance and correct choose_action usage&#10;&#10;(Improve tensor creation speed by using np.array, remove redundant .item() call after choosing action.)" />
-    <MESSAGE value="feat(replay_buffer): add to_torch_dict and load_from_torch_dict for torch-based saving" />
-    <MESSAGE value="chore: switch buffer persistence to torch.save and torch.load" />
     <MESSAGE value="perf(buffer): improve performance by storing replay buffer as torch tensors" />
     <MESSAGE value="feat: add multi-head attention to encoder" />
     <MESSAGE value="feat: add visualization utilities for debugging" />
@@ -406,7 +454,12 @@
     <MESSAGE value="change choose action method from Boltzmann exploration to epsilon greedy" />
     <MESSAGE value="[feat]: add epsilon parameter" />
     <MESSAGE value="small changes" />
-    <option name="LAST_COMMIT_MESSAGE" value="small changes" />
+    <MESSAGE value="[feat]: add parameter bounds for Bayesian Optimization" />
+    <MESSAGE value="[feat]: add PCA for state space visualization" />
+    <MESSAGE value="[feat]: add Bayesian optimization for parameter tuning" />
+    <MESSAGE value="small change" />
+    <MESSAGE value="move to assets folder" />
+    <option name="LAST_COMMIT_MESSAGE" value="move to assets folder" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
