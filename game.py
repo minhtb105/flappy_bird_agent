@@ -10,8 +10,8 @@ class Pipe:
     def __init__(self, x):
         self.x = x
         self.height = 0
-        self.top_pipe = pygame.image.load(PIPE_IMAGE)
-        self.bottom_pipe = pygame.image.load(PIPE_IMAGE)
+        self.top_pipe = Pipe.pipe_image
+        self.bottom_pipe = Pipe.pipe_image
         self.speed = PIPE_SPEED
 
         """Randomizes pipe height and gap size while ensuring a valid gap."""
@@ -28,91 +28,75 @@ class Pipe:
         self.passed = False
 
     def move(self):
-        self.x -= self.speed
+        self.x += self.speed
 
     def off_screen(self):
         return self.x + PIPE_WIDTH < 0
 
-
-@numba.njit(parallel=True)
-def cast_rays_numba(bird_x, bird_y, pipes_array, max_distance):
-    ray_distances = np.ones(int(NUM_RAYS))
-    collisions = np.zeros((int(NUM_RAYS), 2))
-
-    offset_x = bird_x + BIRD_WIDTH
-    offset_y = bird_y + BIRD_HEIGHT / 2
-
-    sorted_pipes = np.argsort(pipes_array[:, 0])
-    sorted_pipes = pipes_array[sorted_pipes]
-
-    visible_rotation = PLAYER_ROTATION_THRESHOLD
-    if visible_rotation <= PLAYER_ROTATION_THRESHOLD:
-        visible_rotation = PLAYER_ROTATION_THRESHOLD
-
-    angles = np.linspace(0- 90 - visible_rotation, 180 - 90 - visible_rotation, NUM_RAYS)
-    radians = np.radians(angles)
-    sin_angles = np.sin(radians)
-    cos_angles = np.cos(radians)
-
-    for i, _ in enumerate(angles):
-        rad = radians[i]
-
-        for d in range(max_distance):
-            x = d * cos_angles[i] + offset_x
-            y = d * sin_angles[i] + offset_y
-
-            if y >= BACKGROUND_HEIGHT:
-                collisions[i][0] = x
-                collisions[i][1] = BACKGROUND_HEIGHT
-                ray_distances[i] = np.sqrt(
-                    (offset_x - collisions[i][0]) ** 2
-                    + (offset_y - collisions[i][1]) ** 2
-                )        
-                break
-            
-            if y <= 0:
-                collisions[i][0] = x
-                collisions[i][1] = 0
-                ray_distances[i] = np.sqrt(
-                    (offset_x - collisions[i][0]) ** 2
-                    + (offset_y - collisions[i][1]) ** 2
-                )
-                break
-
-            hit = False
-            # check pipe collision
-            for p in range(pipes_array.shape[0]):
-                px, top_h, bottom_y = pipes_array[p]
-                # Top pipe
-                if px <= x <= px + PIPE_WIDTH and 0 <= y <= top_h:
-                    collisions[i][0] = px
-                    collisions[i][1] = y
-                    hit = True
-                    break
-
-                # Bottom pipe
-                if px <= x <= px + PIPE_WIDTH and bottom_y <= y <= BACKGROUND_HEIGHT:
-                    collisions[i][0] = px
-                    collisions[i][1] = y
-                    hit = True
-                    break
-
-        # check if collision is below ground
-        if collisions[i][1] > BACKGROUND_HEIGHT:
-            collisions[i][1] = BACKGROUND_HEIGHT
-
-        if hit:
-            ray_distances[i] = np.sqrt(
-                (offset_x - collisions[i][0]) ** 2
-                + (offset_y - collisions[i][1]) ** 2
-            )
+class LIDAR:
+    def __init__(self, max_distance, num_rays=180):
+        self._max_distance = max_distance
+        self.num_rays = num_rays
         
-    return np.clip(ray_distances / max_distance, 0, 1)
+    def scan(self, player_x, player_y, player_rot, pipes, ground_y):
+        collisions = np.zeros((self.num_rays, 2))
+        result = np.empty([self.num_rays])
+        offset_x = player_x + BIRD_WIDTH
+        offset_y = player_y + (BIRD_HEIGHT / 2)
 
+        visible_rot = PLAYER_ROTATION_THRESHOLD
+        if player_rot <= PLAYER_ROTATION_THRESHOLD:
+            visible_rot = player_rot
+
+        pipes_sorted = sorted(pipes, key=lambda p: p.x)
+
+        for i, angle in enumerate(np.linspace(0, 180, self.num_rays, endpoint=False)):
+            rad = np.radians(angle - 90 - visible_rot)
+            x = self._max_distance * np.cos(rad) + offset_x
+            y = self._max_distance * np.sin(rad) + offset_y
+            line = (offset_x, offset_y, x, y)
+            collisions[i] = (x, y)
+
+            # Check ground collision
+            ground_rect = pygame.Rect(0, BACKGROUND_HEIGHT, BASE_WIDTH, BASE_HEIGHT)
+            collision_ground = ground_rect.clipline(line)
+            if collision_ground:
+                collisions[i] = collision_ground[0]
+
+            # Check pipe collision
+            for pipe in pipes_sorted:
+                top_rect = pygame.Rect(pipe.x, 0, PIPE_WIDTH, pipe.top_pipe_height)
+                bottom_rect = pygame.Rect(pipe.x, BACKGROUND_HEIGHT - pipe.bottom_pipe_height, PIPE_WIDTH, pipe.bottom_pipe_height)
+                
+                hit = top_rect.clipline(line)
+                if hit:
+                    collisions[i] = hit[0]
+                    break
+                
+                hit = bottom_rect.clipline(line)
+                if hit:
+                    collisions[i] = hit[0]
+                    break
+
+            if collisions[i][1] > ground_y:
+                collisions[i][1] = ground_y
+
+            result[i] = np.sqrt(
+                (offset_x - collisions[i][0]) ** 2 +
+                (offset_y - collisions[i][1]) ** 2
+            )
+
+        norm_result = result / self._max_distance  
+        
+        return norm_result
 
 class FlappyBirdPygame:
     def __init__(self, visualize=True):
         self.visualize = visualize
+        self.screen = None
+        self.clock = None
+        self.font = None
+        
         if self.visualize:
             pygame.init()
             self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -131,25 +115,33 @@ class FlappyBirdPygame:
         self.background = pygame.transform.scale(pygame.image.load(BACKGROUND_IMAGE), (WIDTH, BACKGROUND_HEIGHT))
         self.base = pygame.transform.scale(pygame.image.load(BASE_IMAGE), (WIDTH, BASE_HEIGHT))
         self.bird = pygame.image.load(BIRD_IMAGE)
-
+        self.pipe_image = pygame.image.load(PIPE_IMAGE)
+        self.bird_mask = pygame.mask.from_surface(self.bird)
+        
+        Pipe.pipe_image = self.pipe_image
+        
         self.steps = 0  # total steps survived in an episode
+        self.jump_strength = JUMP_STRENGTH
         self.gravity = GRAVITY
         self.jump_strength = JUMP_STRENGTH
-        self.drag = DRAG
         self.max_downward_speed = MAX_DOWNWARD_SPEED
         self.max_upward_speed = MAX_UPWARD_SPEED
+        self.flapped = False
+        self.bird_rot = 45
+        
         self.pipes = []
         self.ray_distances = np.ones(int(NUM_RAYS)) 
 
         self.reward_pass_pipe = REWARD_PASS_PIPE
         self.penalty_death = PENALTY_DEATH
         self.reward_alive = REWARD_ALIVE
-        self.reward_center_gap = REWARD_CENTER_GAP
         self.penalty_edge_height = PENALTY_EDGE_HEIGHT
         self.penalty_high_alt = PENALTY_HIGH_ALT
-        self.reward_medium_alt = REWARD_MEDIUM_ALT
+        self.reward_center_gap = REWARD_CENTER_GAP
 
         self.rewards = []
+
+        self.lidar = LIDAR(MAX_RAY_LENGTH, num_rays=NUM_RAYS)
 
         if self.visualize:
             self.show_start_images()
@@ -166,25 +158,22 @@ class FlappyBirdPygame:
 
     def reset(self):
         # Reset game to original state
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.bird_x, self.bird_y = BIRD_X, BIRD_Y
         self.velocity = 0
-        self.acceleration = 0
+        self.bird_rot = 45
         self.pipe_x = WIDTH
-        self.pipes = [Pipe(PIPE_START_OFFSET + i * PIPE_SPACING) for i in range(NUM_PIPES)]
+        self.pipes = [Pipe(WIDTH), Pipe(WIDTH + WIDTH / 2), Pipe(WIDTH + WIDTH)]
         self.is_game_over = False
         self.score = 0
         self.episode_rewards_record = []
 
     def cast_rays(self):
-        pipes_data = np.array([
-            [p.x, p.top_pipe_height, BACKGROUND_HEIGHT - p.bottom_pipe_height] 
-            for p in self.pipes
-        ])
-        
-        self.ray_distances[:] = cast_rays_numba(
-            self.bird_x, self.bird_y, pipes_data, MAX_RAY_LENGTH
+        ray_inputs = self.lidar.scan(
+            self.bird_x, self.bird_y, self.bird_rot, self.pipes, BACKGROUND_HEIGHT
         )
-
+        self.ray_distances[:] = ray_inputs
+        
         return self.ray_distances
 
     def get_state(self):
@@ -197,10 +186,7 @@ class FlappyBirdPygame:
         return np.array(ray_inputs).astype(np.float32)
 
     def is_collision(self, pipe):
-        # Create mask for bird and pipe
-        bird_mask = pygame.mask.from_surface(self.bird)
-
-        
+        # Create mask for pipe
         resized_top_pipe = pygame.transform.scale(pipe.top_pipe, (PIPE_WIDTH, pipe.top_pipe_height))
         resized_bottom_pipe = pygame.transform.scale(pipe.bottom_pipe, (PIPE_WIDTH, pipe.bottom_pipe_height))
         top_pipe_mask = pygame.mask.from_surface(resized_top_pipe)
@@ -210,7 +196,7 @@ class FlappyBirdPygame:
         offset_top = (pipe.x - self.bird_x, 0 - self.bird_y)
         offset_bottom = (pipe.x - self.bird_x, BACKGROUND_HEIGHT - pipe.bottom_pipe_height - self.bird_y)
 
-        if bird_mask.overlap(top_pipe_mask, offset_top) or bird_mask.overlap(bottom_pipe_mask, offset_bottom):
+        if self.bird_mask.overlap(top_pipe_mask, offset_top) or self.bird_mask.overlap(bottom_pipe_mask, offset_bottom):
             return True
 
         return False
@@ -234,18 +220,22 @@ class FlappyBirdPygame:
             float: reward (positive if safe, negative if too close)
         """
         radius = self.compute_private_zone_radius()
-        bird_center = pygame.Vector2(self.bird_x + BIRD_WIDTH / 2, self.bird_y + BIRD_HEIGHT / 2)
+        ray_distances_px = self.ray_distances * MAX_RAY_LENGTH
 
-        for pipe in self.pipes:
-            # Top pipe
-            if bird_center.distance_to(pipe.top_rect.center) < radius:
-                return self.penalty_edge_height
+        if np.any(ray_distances_px < radius):
+            return self.penalty_edge_height
 
-            # Bottom pipe
-            if bird_center.distance_to(pipe.bottom_rect.center) < radius:
-                return self.penalty_high_alt
-
-        return self.reward_center_gap
+        next_pipes = [pipe for pipe in self.pipes if pipe.x + PIPE_WIDTH > self.bird_x]
+        if next_pipes:
+            next_pipe = min(next_pipes, key=lambda p: p.x)
+            gap_top = next_pipe.top_pipe_height
+            gap_bottom = next_pipe.bottom_pipe_height
+            bird_mid_y = self.bird_y + BIRD_HEIGHT / 2
+            
+            if gap_top < bird_mid_y < gap_bottom:
+                return self.reward_center_gap
+        
+        return 0
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -267,15 +257,8 @@ class FlappyBirdPygame:
         # Reward for being alive
         reward += self.reward_alive
 
-        if self.bird_y < 100 or self.bird_y >= BACKGROUND_HEIGHT - BIRD_HEIGHT - 100:
+        if self.bird_y < 2 * BIRD_HEIGHT or self.bird_y >= BACKGROUND_HEIGHT - BIRD_HEIGHT * 2:
             reward += self.penalty_high_alt
-        elif self.bird_y < BACKGROUND_HEIGHT - BIRD_HEIGHT - 100:
-            reward += self.reward_medium_alt
-
-        next_pipe = min(self.pipes, key=lambda p: p.x > self.bird_x)
-        gap_center = next_pipe.top_pipe_height + PIPE_GAP_SIZE / 2
-        dist_to_gap = abs((self.bird_y + BIRD_HEIGHT / 2) - gap_center)
-        reward += 0.4 * np.clip(1 - dist_to_gap / (PIPE_GAP_SIZE / 2), 0, 1)
 
         # Penalty if too close to obstacle (private zone)
         reward += self.check_private_zone_reward()
@@ -296,12 +279,9 @@ class FlappyBirdPygame:
 
         # Remove pipes that have moved out of the screen and create new ones
         if self.pipes and self.pipes[0].x < -PIPE_WIDTH:
-            # Randomize gap size
-            min_gap = PIPE_GAP_SIZE
-            max_gap = int(PIPE_GAP_SIZE * 1.7)
-            gap_size = random.randint(min_gap, max_gap)
+            last_pipe_x = self.pipes[-1].x
             self.pipes.pop(0)
-            self.pipes.append(Pipe(self.pipes[-1].x + PIPE_SPACING + gap_size))
+            self.pipes.append(Pipe(last_pipe_x + PIPE_WIDTH + PIPE_SPACING))
 
         # Collision detection
         for pipe in self.pipes:
@@ -317,24 +297,32 @@ class FlappyBirdPygame:
                 return reward, self.is_game_over, self.score  # Game over
 
         self.update_ui()
-        self.clock.tick(FPS)
+        if self.visualize:
+            self.clock.tick(FPS)
 
         return reward, self.is_game_over, self.score
 
     def move(self, action):
-        if isinstance(action, (list, np.ndarray)) and action[1] == 1:
-            self.acceleration = self.jump_strength
-        elif isinstance(action, int) and action == 1:
-            self.acceleration = self.jump_strength
+        if (isinstance(action, (list, np.ndarray)) and action[1] == 1) or (isinstance(action, int) and action == 1):
+            if self.bird_y > -2 * BIRD_HEIGHT:
+                self.velocity = self.jump_strength
+                self.flapped = True
         else:
-            self.acceleration = self.gravity
+            self.flapped = False
 
-        self.velocity += self.acceleration
-        self.velocity *= self.drag
-        self.velocity = np.clip(self.velocity, self.max_upward_speed, self.max_downward_speed)
-
-        self.bird_y += self.velocity
-
+        if self.velocity < self.max_downward_speed and not self.flapped:
+            self.velocity += self.gravity 
+        
+        if self.flapped:
+            self.flapped = False
+            self.bird_rot = 45
+        else:
+            if self.bird_rot > -90:
+                self.bird_rot -= PLAYER_VEL_ROT
+        
+        max_fall = BACKGROUND_HEIGHT - self.bird.get_height() - self.bird_y
+        self.bird_y += min(self.velocity, max_fall)
+        
         # Prevent bird flying too high or falling below base
         if self.bird_y > HEIGHT - BASE_HEIGHT - self.bird.get_height():
             self.bird_y = HEIGHT - BASE_HEIGHT - self.bird.get_height()
