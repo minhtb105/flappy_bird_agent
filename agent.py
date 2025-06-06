@@ -52,9 +52,15 @@ class FlappyBirdAgent:
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.gamma = GAMMA
-        self.lr = LEARNING_RATE
+        self.learning_rate = LEARNING_RATE
+        self.beta1 = BETA1
+        self.beta2 = BETA2
+        self.weight_decay = WEIGHT_DECAY
+        self.adam_epsilon = ADAM_EPSILON
         self.batch_size = BATCH_SIZE
-        self.epsilon = EPSILON
+        self.temperature = TEMP_INIT
+        self.temperature_min = TEMP_MIN
+        self.temperature_decay = TEMP_DECAY
 
         self.insert_count = 0
         self.samples_per_insert = SAMPLES_PER_INSERT_RATIO
@@ -68,17 +74,21 @@ class FlappyBirdAgent:
         self.target_net.eval()
         self.use_soft_update = True
 
-        self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+        self.optimizer = optim.AdamW(self.policy_net.parameters(), 
+                                    lr=self.learning_rate, 
+                                    weight_decay=self.weight_decay, 
+                                    betas=(self.beta1, self.beta2),
+                                    eps=self.adam_epsilon)
 
         self.td_errors = []
-        self.losses = [0]
+        self.losses = []
         self.grad_norms = []
-        self.max_q_values = [0]
-        self.min_q_values = [0]
-        self.q_values = [0]
-        self.q_diffs = [0]
+        self.max_q_values = []
+        self.min_q_values = []
+        self.q_values = []
+        self.q_diffs = []
         self.train_steps = 0
-        self.epsilons = [EPSILON]
+        self.temperatures = [TEMP_INIT]
 
     def choose_action(self, state, explore=True):
         try:
@@ -89,10 +99,14 @@ class FlappyBirdAgent:
             if not explore:
                 return torch.argmax(q_values).item()
 
-            if random.random() < self.epsilon:
-                return random.randint(0, self.action_dim - 1)
-
-            return torch.argmax(q_values).item()
+            # Boltzmann exploration
+            q_np = q_values.cpu().numpy()
+            q_np = q_np - np.max(q_np)
+            exp_q = np.exp(q_np / max(self.temperature, 1e-6))
+            probs = exp_q / np.sum(exp_q)
+            action = np.random.choice(self.action_dim, p=probs)
+            
+            return int(action)
 
         except Exception as e:
             error_counts["choose_action"] += 1
@@ -100,9 +114,9 @@ class FlappyBirdAgent:
             
             return random.randint(0, self.action_dim - 1)
 
-    def update_epsilon(self):
-        self.epsilon = max(self.epsilon * EPSILON_DECAY, EPSILON_MIN)
-        self.epsilons.append(self.epsilon)
+    def update_temperature(self):
+        self.temperature = max(self.temperature * TEMP_DECAY, TEMP_MIN)
+        self.temperatures.append(self.temperature)
 
 
     def train(self):
@@ -192,8 +206,8 @@ class FlappyBirdAgent:
             else:
                 writer.add_scalar("Train/Hard_Update/QDiff", self.q_diffs[-1], step)
 
-        if self.epsilons and step % 10 == 0:
-            writer.add_scalar("Train/Epsilon", self.epsilons[-1], step)
+        if self.temperatures and step % 10 == 0:
+            writer.add_scalar("Train/Temperature", self.temperatures[-1], step)
 
         # Priority alpha decay
         if hasattr(self.replay_buffer, "alpha") and step % 10 == 0 and step > 0:
@@ -236,3 +250,24 @@ class FlappyBirdAgent:
         print(f"Total parameters: {total:,}")
         print(f"Trainable parameters: {trainable:,}")
         logging.info(f"Total parameters: {total}, Trainable parameters: {trainable}")
+
+    def update_optimizer(self):
+        self.optimizer = torch.optim.AdamW(
+            self.policy_net.parameters(),
+            lr=self.learning_rate,
+            weight_decay=getattr(self, "weight_decay", 0.0),
+            betas=(getattr(self, "beta1", 0.9), getattr(self, "beta2", 0.999)),
+            eps=getattr(self, "adam_epsilon", 1e-8)
+        )
+        
+    def get_positional_embedding(self, x):
+        if x.ndim == 2:
+            x = x.unsqueeze(0)
+
+        x = x.to(self.device)
+        with torch.no_grad():
+            emb = self.policy_net.embedding(x)
+            pos_enc = self.policy_net.positional_encoding.unsqueeze(0)
+            pos_emb = emb + pos_enc
+            
+        return pos_emb.squeeze(0)

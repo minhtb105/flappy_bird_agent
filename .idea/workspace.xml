@@ -4,10 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="move to assets folder">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/configs/game_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/game_configs.py" afterDir="false" />
+    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="small changes in MLP architecture and attention heads">
+      <change beforePath="$PROJECT_DIR$/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/agent.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/experiment_parameter_tuning.py" beforeDir="false" afterPath="$PROJECT_DIR$/experiment_parameter_tuning.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/visualization_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualization_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -119,6 +120,7 @@
       <workItem from="1748184637606" duration="1072000" />
       <workItem from="1748187520700" duration="585000" />
       <workItem from="1748349803164" duration="76000" />
+      <workItem from="1749222509189" duration="418000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
       <option name="closed" value="true" />
@@ -416,7 +418,23 @@
       <option name="project" value="LOCAL" />
       <updated>1748185067356</updated>
     </task>
-    <option name="localTasksCounter" value="38" />
+    <task id="LOCAL-00038" summary="small changes">
+      <option name="closed" value="true" />
+      <created>1749222710138</created>
+      <option name="number" value="00038" />
+      <option name="presentableId" value="LOCAL-00038" />
+      <option name="project" value="LOCAL" />
+      <updated>1749222710138</updated>
+    </task>
+    <task id="LOCAL-00039" summary="small changes in MLP architecture and attention heads">
+      <option name="closed" value="true" />
+      <created>1749222810226</created>
+      <option name="number" value="00039" />
+      <option name="presentableId" value="LOCAL-00039" />
+      <option name="project" value="LOCAL" />
+      <updated>1749222810226</updated>
+    </task>
+    <option name="localTasksCounter" value="40" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -434,7 +452,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="perf(buffer): improve performance by storing replay buffer as torch tensors" />
     <MESSAGE value="feat: add multi-head attention to encoder" />
     <MESSAGE value="feat: add visualization utilities for debugging" />
     <MESSAGE value="fix: draw private zone" />
@@ -453,22 +470,18 @@
     <MESSAGE value="[feat] add normalize layer and small dropout after rays input" />
     <MESSAGE value="change choose action method from Boltzmann exploration to epsilon greedy" />
     <MESSAGE value="[feat]: add epsilon parameter" />
-    <MESSAGE value="small changes" />
     <MESSAGE value="[feat]: add parameter bounds for Bayesian Optimization" />
     <MESSAGE value="[feat]: add PCA for state space visualization" />
     <MESSAGE value="[feat]: add Bayesian optimization for parameter tuning" />
     <MESSAGE value="small change" />
     <MESSAGE value="move to assets folder" />
-    <option name="LAST_COMMIT_MESSAGE" value="move to assets folder" />
+    <MESSAGE value="small changes" />
+    <MESSAGE value="small changes in MLP architecture and attention heads" />
+    <option name="LAST_COMMIT_MESSAGE" value="small changes in MLP architecture and attention heads" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/dueling_motion_transformers.py</url>
-          <line>22</line>
-          <option name="timeStamp" value="6" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/configs/dqn_configs.py</url>
           <line>3</line>
