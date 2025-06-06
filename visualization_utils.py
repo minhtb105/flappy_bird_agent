@@ -3,7 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch.nn.functional as F
-from configs.dqn_configs import TRACK_TEMPERATURE_DECAY_INTERVAL
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def plot(scores, save_path="plots/scores.png", label="Score", title="Training Progress"):
@@ -63,25 +63,6 @@ def plot_attention_heatmap(attn_weights, title="Attention Heatmap", save_path="p
 
     plt.close()
 
-
-def plot_temperature_decay(temperatures, title="Temperature Decay Over Episodes", save_path="plots/temperature_decay.png"):
-    if isinstance(temperatures, torch.Tensor):
-        temperatures = temperatures.detach().cpu().numpy()
-    
-    plt.figure(figsize=(10, 5))
-    plt.plot([TRACK_TEMPERATURE_DECAY_INTERVAL * i for i in range(len(temperatures))], temperatures)
-    plt.title(title)
-    plt.xlabel("Episode")
-    plt.ylabel("Epsilon")
-    plt.tight_layout()
-    
-    if save_path:
-        plt.savefig(save_path)
-    else:
-        plt.show()
-        
-    plt.close()
-        
 def plot_losses(losses, window_size=100, title="Loss Visualization", save_path="plots/losses_separated.png"):
     losses = [l.detach().cpu().item() if torch.is_tensor(l) else l for l in losses]
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
@@ -240,4 +221,18 @@ def plot_positional_embedding_similarity(positional_embeddings: torch.Tensor):
         plt.ylabel("Timestep")
         plt.tight_layout()
         plt.show()
-        
+
+
+def plot_timestep_similarity(memory_tensor, title="Cosine Similarity between Timesteps"):
+    if memory_tensor.ndim != 2:
+        raise ValueError("memory_tensor must be 2D (timesteps x features)")
+
+    sim_matrix = cosine_similarity(memory_tensor)
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(sim_matrix, annot=False, cmap='viridis', square=True, cbar=True)
+    plt.title(title)
+    plt.xlabel("Timestep")
+    plt.ylabel("Timestep")
+    plt.tight_layout()
+    plt.show()
