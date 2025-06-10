@@ -1,6 +1,7 @@
 import pygame
 import os
 import sys
+import cv2
 import logging
 import imageio
 from collections import deque
@@ -43,9 +44,8 @@ def train_loop(config=None,
         }
         num_episodes (int): number of episodes to train
     """
-    # Load model if available
+    agent.replay_buffer.load_and_merge_replay_buffers()
     load_model()
-    
     if config:
         for param, value in config.items():
             if hasattr(game, param):
@@ -76,11 +76,13 @@ def train_loop(config=None,
         is_winning_episode = True
 
         while not game.is_game_over and steps < MAX_STEPS_PER_EPISODE:
-            if record_video and hasattr(game, "screen") and total_score > 300:
+            if record_video and hasattr(game, "screen") and total_score > max_score:
                 frame = pygame.surfarray.array3d(game.screen)
                 frame = frame.transpose(1, 0, 2)  # (width, height, 3) -> (height, width, 3)
+                if frame.shape[0] != HEIGHT or frame.shape[1] != WIDTH:
+                    frame = cv2.resize(frame, (WIDTH, HEIGHT))
                 video_writer.append_data(frame)
-            
+
             state_array = np.array(state_seq)
             state_tensor = torch.tensor(state_array, dtype=torch.float32).unsqueeze(0).to(agent.device)
 
@@ -109,16 +111,12 @@ def train_loop(config=None,
                 if steps % TARGET_UPDATE_FREQ == 0 and steps != 0:
                     agent.hard_update_target()
 
-            if steps % SAVE_INTERVAL == 0 and steps != 0:
-                torch.save(agent.policy_net.state_dict(), "models/policy_net.pth")
-                torch.save(agent.target_net.state_dict(), "models/target_net.pth")
-
             if game_over:
                 break
 
         max_score = max(max_score, total_score)
 
-        if visualize and episode > 0 and episode % VISUALIZATION_INTERVAL == 0:
+        if visualize:
             agent.log_to_tensorboard(writer, episode)
 
         if game.is_game_over or total_score == 0:
@@ -127,8 +125,13 @@ def train_loop(config=None,
         consecutive_wins = consecutive_wins + 1 if is_winning_episode else 0
 
         if episode % SAVE_REPLAY_BUFFER_INTERVAL == 0 and episode != 0:
-            buffer_dict = agent.replay_buffer.to_torch_dict()
-            torch.save(buffer_dict, "models/replay_buffer.pt")
+            agent.replay_buffer.filter_buffer(episode)
+            agent.replay_buffer.load_and_merge_replay_buffers()
+            
+        if episode % SAVE_INTERVAL == 0 and episode != 0:
+            async_save("models/policy.pth", agent.policy_net.state_dict())
+            async_save("models/target.pth", agent.target_net.state_dict())
+            async_save("models/optimizer.pth", agent.optimizer.state_dict())
 
         if consecutive_wins >= CONSECUTIVE_WINS_THRESHOLD:
             logging.info(f"AI has won {CONSECUTIVE_WINS_THRESHOLD} times in a row. Stopping training.")
@@ -179,32 +182,32 @@ def test_loop(num_episodes=100, max_steps_per_episode=1000):
     pygame.display.quit()
     pygame.quit()
 
-def extract_log_message(line):
-    parts = line.split(" - ", maxsplit=2)
-    
-    return ': '.join(parts[1:]).strip() if len(parts) == 3 else line.strip()
-
 def load_model():
     if os.path.exists("models/policy_net.pth"):
-        agent.policy_net.load_state_dict(torch.load("models/policy_net.pth"))
+        agent.policy_net.load_state_dict(torch.load("models/policy_net.pth"), weights_only=False)
         logging.info("Policy network loaded successfully.")
     else:
         logging.warning("No model found to load.")
 
     if os.path.exists("models/target_net.pth"):
-        agent.target_net.load_state_dict(torch.load("models/target_net.pth"))
+        agent.target_net.load_state_dict(torch.load("models/target_net.pth"), weights_only=False)
         logging.info("Target network loaded successfully.")
     else:
         logging.warning("No target network found to load.")
-        
-    if os.path.exists("models/replay_buffer.pt"):
-        buffer_data = torch.load("models/replay_buffer.pt")
-        agent.replay_buffer.load_from_torch_dict(buffer_data)
-        logging.info("Replay buffer loaded successfully.")
+
+    if os.path.exists("models/optimizer.pth"):
+        agent.optimizer.load_state_dict(torch.load("models/optimizer.pth"), weights_only=False)
+        logging.info("Optimizer state loaded successfully.")
     else:
-        logging.warning("No replay buffer found to load.")
+        logging.warning("No optimizer state found to load.")
+         
+def async_save(path, obj):
+    import threading
+    t = threading.Thread(target=torch.save, args=(obj, path))
+    t.start()
 
 if __name__ == "__main__":
+    
     parser = argparse.ArgumentParser(description="Train Flappy Bird AI")
     parser.add_argument("--mode", type=str, choices=['train', 'test'], default='train')
     parser.add_argument("--log-level", type=str, choices=['debug', 'info', 'warning', 'error'], default='info', help="Logging level")
@@ -222,6 +225,7 @@ if __name__ == "__main__":
     else:
         test_loop()
 
+    pygame.display.quit()
     pygame.quit()
     logging.shutdown() # Ensure all logs are flushed
     sys.exit(0) # Exit the entire program safely

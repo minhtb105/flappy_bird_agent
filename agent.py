@@ -143,6 +143,7 @@ class FlappyBirdAgent:
             rewards = rewards.to(self.device)
             next_states = next_states.to(self.device)
             weights = weights.to(self.device)
+            
             q_values = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
             q_targets = self.target_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
             diff = torch.abs(q_values - q_targets).mean().item()
@@ -185,37 +186,37 @@ class FlappyBirdAgent:
             log_once_per("train_failure", f"[train] Training failed: {str(e)}", self.train_steps)
 
     def log_to_tensorboard(self, writer, step):
-        if self.losses and step % 10 == 0:
-            writer.add_scalar('Train/Loss', self.losses[-1], step)
+        if self.losses and step % 20 == 0 and step > 0:
+            writer.add_scalar(f"Train/Loss/EP_{(step // 1000 + 1) * 1000}", self.losses[-1], step)
 
-        if self.td_errors and step % 10 == 0:
-            writer.add_scalar("Train/TD_Error", self.td_errors[-1], step)
+        if self.td_errors and step % 20 == 0 and step > 0:
+            writer.add_scalar(f"Train/TD_Error/EP_{(step // 1000 + 1) * 1000}", self.td_errors[-1], step)
 
-        if self.grad_norms and step % 10 == 0:
-            writer.add_scalar('Train/GradNorm', self.grad_norms[-1], step)
+        if self.grad_norms and step % 20 == 0 and step > 0:
+            writer.add_scalar(f"Train/GradNorm/EP_{(step // 1000 + 1) * 1000}", self.grad_norms[-1], step)
 
-        if self.q_values and step % 10 == 0:
-            writer.add_scalar('Train/QValue', self.q_values[-1], step)
+        if self.q_values and step % 20 == 0 and step > 0:
+            writer.add_scalar(f"Train/QValue/EP_{(step // 1000 + 1) * 1000}", self.q_values[-1], step)
 
-        if self.max_q_values and self.min_q_values and step % 10 == 0:
+        if self.max_q_values and self.min_q_values and step % 50 == 0 and step > 0:
             writer.add_scalars("Train/QStats", {"q_max": self.max_q_values[-1], "q_min": self.min_q_values[-1]}, step)
 
-        if self.q_diffs and step % 10 == 0:
+        if self.q_diffs and step % 20 == 0 and step > 0:
             if self.use_soft_update:
-                writer.add_scalar("Train/Soft_Update/QDiff", self.q_diffs[-1], step)
+                writer.add_scalar(f"Train/Soft_Update/QDiff/EP_{(step // 1000 + 1) * 1000}", self.q_diffs[-1], step)
             else:
-                writer.add_scalar("Train/Hard_Update/QDiff", self.q_diffs[-1], step)
+                writer.add_scalar(f"Train/Hard_Update/QDiff/EP_{(step // 1000 + 1) * 1000}", self.q_diffs[-1], step)
 
-        if self.temperatures and step % 10 == 0:
-            writer.add_scalar("Train/Temperature", self.temperatures[-1], step)
+        if self.temperatures and step % 20 == 0 and step > 0:
+            writer.add_scalar(f"Train/Temperature/EP_{(step // 1000 + 1) * 1000}", self.temperatures[-1], step)
 
         # Priority alpha decay
-        if hasattr(self.replay_buffer, "alpha") and step % 10 == 0 and step > 0:
-            writer.add_scalar("Train/Replay_Buffer_Alpha", self.replay_buffer.alpha, step)
+        if hasattr(self.replay_buffer, "alpha") and step % 20 == 0 and step > 0:
+            writer.add_scalar(f"Train/Replay_Buffer_Alpha/EP_{(step // 1000 + 1) * 1000}", self.replay_buffer.alpha, step)
 
         # Attention map as image
         attn = self.policy_net.get_attention_weights()
-        if attn is not None and step % 300 == 0:
+        if attn is not None and step % 300 == 0 and step > 0:
             try:
                 import matplotlib.pyplot as plt
                 import io

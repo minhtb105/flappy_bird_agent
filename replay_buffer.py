@@ -54,6 +54,8 @@ class PrioritizedReplayBuffer:
         self.priorities = np.zeros((capacity,), dtype=np.float32)
         self.alpha = alpha
         self.beta = beta
+        self.buffer_len = 0
+        self.last_saved_idx = 0
         logging.debug(f"Initialized PER buffer with capacity {capacity} and alpha {alpha}")
 
     def store_transition(self, state, action, reward, next_state):
@@ -65,6 +67,7 @@ class PrioritizedReplayBuffer:
                 self.memory[self.position] = (state, action, reward, next_state)
             self.priorities[self.position] = max_priority
             self.position = (self.position + 1) % self.capacity
+            self.buffer_len += 1
         except Exception as e:
             print(e)
 
@@ -120,17 +123,114 @@ class PrioritizedReplayBuffer:
         if steps_done % 10000 == 0:
             logging.info(f"Alpha decayed from {old_alpha:.4f} to {self.alpha:.4f} at step {steps_done}")
 
-    def to_torch_dict(self):
+    def get_new_transitions(self):
+        if self.last_saved_idx >= self.buffer_len:
+            return None
+
+        new_transitions = list(self.memory)[self.last_saved_idx:]
+        priorities = self.priorities[self.last_saved_idx:]
+
+        return new_transitions, priorities
+
+    def filter_buffer(self, episode=0, random_ratio=0.2, reward_ratio=0.4, pr_ratio=0.4, buffer_size=40000):
+        if self.last_saved_idx >= self.buffer_len:
+            return None
+
+        states, actions, rewards, next_states = zip(*list(self.memory)[self.last_saved_idx:])
+        priorities = self.priorities[self.last_saved_idx:]
+
+        states = np.array(states)
+        actions = np.array(actions)
+        rewards = np.array(rewards)
+        next_states = np.array(next_states)
+        priorities = np.array(priorities)
+
+        n = len(states)
+        if buffer_size is None:
+            buffer_size = n
+            
+        n_random = int(buffer_size * random_ratio)
+        n_reward = int(buffer_size * reward_ratio)
+        n_pr = int(buffer_size * pr_ratio)
+        
+        all_indices = np.arange(n)
+        
+        random_indices = np.random.choice(all_indices, n_random, replace=False)
+        reward_indices = np.argpartition(-rewards, n_reward)[:n_reward]
+        priorities_indices = np.argpartition(-priorities, n_pr)[:n_pr]
+
+        selected_indices = np.unique(np.concatenate([random_indices, reward_indices, priorities_indices]))
+
+        if len(selected_indices) > buffer_size:
+            selected_indices = np.random.choice(selected_indices, buffer_size, replace=False)
+
+        filtered_data = {
+            'states': states[selected_indices],
+            'actions': actions[selected_indices],
+            'rewards': rewards[selected_indices],
+            'next_states': next_states[selected_indices],
+            "priorities": priorities[selected_indices]
+        }
+
+        torch.save(filtered_data, f"models/replay_buffer_ep{episode}.pt")
+
+    def load_and_merge_replay_buffers(self, paths=None):
+        """
+        Load and merge multiple .pt replay buffer files, then assign to replay_buffer.
+        """
+        import glob
+        if paths is None:
+            paths = sorted(glob.glob("models/replay_buffer_ep*.pt"))
+
+        if not paths:
+            logging.warning("No replay buffer files found to load.")
+            return {}
+
+        all_states, all_actions, all_rewards, all_next_states, all_priorities = [], [], [], [], []
+
+        for path in paths:
+            data = torch.load(path, weights_only=False)
+            all_states.append(data['states'])
+            all_actions.append(data['actions'])
+            all_rewards.append(data['rewards'])
+            all_next_states.append(data['next_states'])
+            all_priorities.append(data['priorities'])
+
+        states = np.concatenate(all_states, axis=0)
+        actions = np.concatenate(all_actions, axis=0)
+        rewards = np.concatenate(all_rewards, axis=0)
+        next_states = np.concatenate(all_next_states, axis=0)
+        priorities = np.concatenate(all_priorities, axis=0)
+
+        # Clear and refill replay buffer
+        self.memory.clear()
+        self.position = 0
+        self.priorities = np.zeros((self.capacity,), dtype=np.float32)
+
+        n = min(len(states), self.capacity)
+        for i in range(n):
+            self.memory.append((states[i], actions[i], rewards[i], next_states[i]))
+            self.priorities[i] = priorities[i]
+        self.position = n % self.capacity
+        self.last_saved_idx = n % self.capacity
+
+        logging.info(f"Merged and loaded {n} transitions into replay buffer.")
+
+    def to_torch_dict(self, path, new_transitions=None, priorities=None):
+        if new_transitions is None:
+            new_transitions = self.memory
+        if priorities is None:
+            priorities = self.priorities
+
         try:
-            states, actions, rewards, next_states = zip(*[(s, a, r, ns) for s, a, r, ns in self.memory])
-            return {
+            states, actions, rewards, next_states = zip(*[(s, a, r, ns) for s, a, r, ns in new_transitions])
+            torch.save({
                 'states': torch.tensor(np.stack(states), dtype=torch.float32),
                 'actions': torch.tensor(actions, dtype=torch.long),
                 'rewards': torch.tensor(rewards, dtype=torch.float32),
                 'next_states': torch.tensor(np.stack(next_states), dtype=torch.float32),
-                'priorities': torch.tensor(self.priorities, dtype=torch.float32),
-                'position': self.position
-            }
+                'priorities': torch.tensor(priorities, dtype=torch.float32),
+            }, path)
         except Exception as e:
             print(e)
             
