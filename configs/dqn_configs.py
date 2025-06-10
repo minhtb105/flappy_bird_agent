@@ -38,10 +38,10 @@ TARGET_UPDATE_FREQ = 1000  # Hard update target network every 1000 steps
 
 # Training configurations
 LOAD_MODEL = True  # Load from a saved checkpoint if available
-SAVE_INTERVAL = 10000  # Save the model every 10.000 steps
+SAVE_INTERVAL = 1000  # Save the model every 1000 episodes
 TEST_MODE = False  # If True, AI only plays without training
 NUM_EPISODES = 10000  
 MAX_STEPS_PER_EPISODE = 10000000  # Maximum steps per episode
 CONSECUTIVE_WINS_THRESHOLD = 100  # Stop training if AI wins 100 consecutive episodes
-SAVE_REPLAY_BUFFER_INTERVAL = 100  # Save the replay buffer every 100 episodes
-VISUALIZATION_INTERVAL = 50  # Interval for visualization
+SAVE_REPLAY_BUFFER_INTERVAL = 1000  # Save the replay buffer every 1000 episodes
+VISUALIZATION_INTERVAL = 20  # Interval for visualization

@@ -2,29 +2,10 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
-import os
 
-
-def load_buffer(path="models/replay_buffer.pt"):
-    if not os.path.exists(path):
-        print(f"File {path} does not exist.")
-        return None
-
-    try:
-        data = torch.load(path)
-        
-        return data
-    except Exception as e:
-        print(f"Error loading buffer: {e}")
-
-        return None
 
 def inspect_buffer(data):
-    states = data['states'].numpy()
-    actions = data['actions'].numpy()
-    rewards = data['rewards'].numpy()
-    next_states = data['next_states'].numpy()
-    priorities = data['priorities'].numpy()
+    states, actions, rewards, next_states, priorities = data
 
     print(f"\nTotal number of samples: {len(states)}")
     print("—" * 40)
@@ -51,15 +32,7 @@ def inspect_buffer(data):
         if pct > 95:
             print("Bias action!")
 
-    # 4. Priorities
-    print("\nPriorities:")
-    print(f"Min: {np.min(priorities):.4f}")
-    print(f"Max: {np.max(priorities):.4f}")
-    print(f"Mean: {np.mean(priorities):.4f}")
-    if np.max(priorities) > 100 or np.isnan(priorities).any():
-        print("Priorities contain NaN or too large values")
-
-    # 5. States
+    # 4. States
     print("\nStates:")
     print("State shape:", states.shape)
     print("Min:", states.min())
@@ -95,8 +68,52 @@ def inspect_buffer(data):
     plt.tight_layout()
     plt.savefig("plots/reward_distribution.png")
     
+    # 6. Priorities
+    print("\nPriorities:")
+    print(f"Min: {np.min(priorities):.6f}")
+    print(f"Max: {np.max(priorities):.6f}")
+    print(f"Mean: {np.mean(priorities):.6f}")
+    print(f"Std dev: {np.std(priorities):.6f}")
 
-if __name__ == "__main__":
-    buffer_data = load_buffer("models/replay_buffer.pt")
-    if buffer_data:
-        inspect_buffer(buffer_data)
+    high = np.sum(priorities > np.mean(priorities) + 2 * np.std(priorities))
+    low = np.sum(priorities < np.mean(priorities) - 2 * np.std(priorities))
+    print(f"High-priority outliers: {high}")
+    print(f"Low-priority outliers: {low}")
+
+    # Plot
+    plt.figure(figsize=(7,5))
+    plt.hist(priorities, bins=50, color='salmon', edgecolor='black')
+    plt.title("Priority Distribution")
+    plt.xlabel("Priority value")
+    plt.ylabel("Frequency")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("plots/priority_distribution.png")
+    
+def deduplicate_transitions(buffer_dict):
+    seen = set()
+    keep_indices = []
+
+    states = buffer_dict[0]
+    actions = buffer_dict[1]
+    rewards = buffer_dict[2]
+
+    for i in range(len(states)):
+        key = (
+            tuple(states[i].flatten()), 
+            int(actions[i]), 
+            float(rewards[i])
+        )
+        if key not in seen:
+            seen.add(key)
+            keep_indices.append(i)
+
+    print(f"Kept {len(keep_indices)} / {len(states)} unique transitions.")
+    return {k: v[keep_indices] for k, v in buffer_dict.items()}
+
+
+# if __name__ == "__main__":
+#     buffer_data = load_and_merge_replay_buffers()
+#     if buffer_data:
+#         # inspect_buffer(buffer_data)
+#         filtered = filter_buffer(buffer_data, random_ratio=0.2, reward_ratio=0.4, td_error_ratio=0.4, buffer_size=100)
