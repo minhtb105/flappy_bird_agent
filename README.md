@@ -92,7 +92,7 @@ This helps reduce memory usage and improves I/O performance during long training
 ---
 
 🗂 Directory Structure
-```bash 
+``` bash 
   📦 your-project/ ├── train.py # Main training loop ├── agent.py # DQN agent logic ├── game.py # Flappy Bird environment ├── replay_buffer.py # Replay buffer with PER │ ├── configs/ │ ├── dqn_configs.py # DQN settings │ └── game_configs.py # Game settings │ ├── models/ # Saved models & checkpoints ├── plots/ # Reward, Q-value, loss, TD-error graphs ├── logs/ # logs 
 ``` 
 
