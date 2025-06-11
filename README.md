@@ -1,6 +1,6 @@
 # 🐦 Flappy Bird AI – Reinforcement Learning Agent
 
-🚀 **Flappy Bird AI** is a deep reinforcement learning (RL) agent trained using **Double Deep Q-Networks (DDQN)** and **Prioritized Experience Replay (PER)**. The AI learns to **play Flappy Bird autonomously**, adapting to dynamic environments with **stochastic pipes and variable game speed**.
+🚀 **Flappy Bird AI** is a deep reinforcement learning (RL) agent trained using **Double Deep Q-Networks (DDQN)** and **Prioritized Experience Replay (PER)**. The AI learns to **play Flappy Bird autonomously**, adapting to dynamic environments with **stochastic pipes**.
 
 ![Flappy Bird AI Demo](assets/demo.gif)  
 
