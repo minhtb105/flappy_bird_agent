@@ -10,7 +10,6 @@
 - **🧠 Double Deep Q-Networks (DDQN)** – More stable training by reducing Q-value overestimation.
 - **🎯 Prioritized Experience Replay (PER)** – AI learns faster by focusing on important mistakes.
 - **🌎 Stochastic Pipes (Randomized Levels)** – Prevents overfitting by forcing AI to adapt.
-- **⚡ Variable Game Speed** – Teaches AI to handle different difficulty levels.
 - **💾 Model Checkpointing** – Saves progress every 10000 steps for later training or testing.
 
 ---
