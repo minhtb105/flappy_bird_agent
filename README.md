@@ -1,6 +1,6 @@
 # 🐦 Flappy Bird AI – Reinforcement Learning Agent
 
-🚀 **Flappy Bird AI** is a deep reinforcement learning (RL) agent trained using **Double Deep Q-Networks (DDQN)** and **Prioritized Experience Replay (PER)**. The AI learns to **play Flappy Bird autonomously**, adapting to dynamic environments with **stochastic pipes**.
+🚀 **Flappy Bird AI** is a deep reinforcement learning (RL) agent trained using **Motion Transformers** and **Prioritized Experience Replay (PER)**. The AI learns to **play Flappy Bird autonomously**, adapting to dynamic environments with **stochastic pipes**.
 
 ![Flappy Bird AI Demo](assets/demo.gif)  
 
@@ -25,7 +25,7 @@ cd flappy-bird-agent
 
 # 🤖 Training the AI
 
-Train the **Flappy Bird agent** using Deep Q-Learning:
+Train the **Flappy Bird agent** using Motion Transformers:
 
 ```bash
 pip install -r requirements.txt
@@ -39,29 +39,77 @@ python train.py
 
 The AI will start learning from scratch!  
 Model checkpoints are saved every 1000 episodes.  
-Training graphs are automatically generated to visualize progress.
-
+Training metrics are logged in plots/ for TensorBoard.
 ---
+
+Launch TensorBoard:
+
+```bash
+tensorboard --logdir=plots
+```
 
 # 🔬 How the AI Works
 
-Flappy Bird AI is trained using Deep Q-Learning (DQN) with several optimizations:
+Flappy Bird AI is trained using Dueling Motion Transformers with several optimizations:
 
 ### 🧠 Neural Network Architecture
 - **Input**: The LIDAR sensor 180.
 - **Hidden Layers**: Fully connected deep neural network.
 - **Output**: Q-values for jump or no jump decisions.
 
-### 🏗️ Reinforcement Learning Enhancements
+### 🔁 Replay Buffer Design (Prioritized + Filtered)
+The replay buffer is designed for efficiency and focus by selectively retaining high-quality transitions. It includes:
 
-| **Feature**                     | **Purpose**                                         |
-|----------------------------------|----------------------------------------------------|
-| **Dueling Motion Transformers**            | Prevents Q-value overestimation                    |
-| **Prioritized Experience Replay (PER)** | Speeds up learning by focusing on important experiences |
-| **Stochastic Pipes**             | Forces AI to adapt to random environments          |
-| **Soft Target Network Updates** | Improves stability during training              |
+🧠 Filtering Strategy
+Before saving the buffer to disk, we filter transitions from memory using the following weighted sampling criteria:
+
+Type	Description	Ratio
+🔄 random_ratio	Uniformly random transitions (ensure diversity)	20%
+💰 reward_ratio	Transitions with high absolute reward values	40%
+🔥 priority_ratio	Transitions with high TD-error priorities (PER)	40%
+
+This ensures the agent learns from:
+
+both mistakes and successes (reward_ratio),
+
+surprising/difficult transitions (priority_ratio),
+
+and a small set of random noise for generalization (random_ratio).
+
+These filtered samples are saved periodically to disk.
+
+💾 Efficient Batch-Saving & Loading
+Instead of saving the entire replay buffer at once (which is large), the filtered samples are:
+
+✅ Split into batches (e.g., 50,000 samples per chunk)
+
+✅ Saved as .pt files (e.g., replay_buffer_epXXX_chunk0.pt)
+
+✅ Reloaded later and merged during fine-tuning or evaluation
+
+This helps reduce memory usage and improves I/O performance during long training runs.
 
 ---
+
+🗂 Directory Structure
+graphql
+├── train.py                        # Main training loop
+├── agent.py                        # DQN agent logic
+├── replay_buffer.py                # Prioritized Experience Replay + Filtering
+├── game.py                         # Flappy Bird environment using pygame
+├── dueling_motion_transformers.py # Transformer-based Dueling Q-Network
+├── inspect_buffer.py              # Analyze and visualize replay buffer content
+├── experiment_parameter_tuning.py # Bayesian optimization for RL hyperparameters
+│
+├── configs/
+│   ├── dqn_configs.py              # Hyperparameters for DQN training
+│   ├── game_configs.py             # Physics and game-specific settings
+│   └── pbounds.py                  # Parameter bounds for Bayesian optimization
+│
+├── models/                         # Saved models, optimizer and replay buffer chunks
+├── logs/                           # Logs
+├── plots/                          # Buffer analysis plots (PCA, rewards, priorities, td_errors, loss, q_values, q_diff, max_q_values and min_q_values, temperatures, priority alpha decay, attention map)
+
 
 # 🚀 Future Improvements
 
