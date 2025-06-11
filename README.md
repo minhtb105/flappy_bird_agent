@@ -94,16 +94,22 @@ This helps reduce memory usage and improves I/O performance during long training
 🗂 Directory Structure
 ```bash
 📦 your-project/
-├── train.py # Main training loop
-├── agent.py # DQN agent logic
-├── game.py # Flappy Bird environment
-├── replay_buffer.py # Replay buffer with PER
-│ ├── configs/
-│ ├── dqn_configs.py # DQN settings
-│ └── game_configs.py # Game settings
-│ ├── models/ # Saved models & checkpoints
-├── plots/ # Reward, Q-value, loss, TD-error, ... graphs
-├── logs/ # logs 
+├── train.py                        # Main training loop
+├── agent.py                        # DQN agent logic
+├── replay_buffer.py                # Prioritized Experience Replay + Filtering + PER
+├── game.py                         # Flappy Bird environment using pygame
+├── dueling_motion_transformers.py # Transformer-based Dueling Q-Network
+├── inspect_buffer.py              # Analyze and visualize replay buffer content
+├── experiment_parameter_tuning.py # Bayesian optimization for RL hyperparameters
+│
+├── configs/
+│   ├── dqn_configs.py              # Hyperparameters for DQN training
+│   ├── game_configs.py             # Physics and game-specific settings
+│   └── pbounds.py                  # Parameter bounds for Bayesian optimization
+│
+├── models/                         # Saved models and replay buffer chunks
+├── logs/                           # TensorBoard logs
+├── plots/                          # Buffer analysis plots (PCA, rewards, priorities)
 ```
 
 # 🚀 Future Improvements
