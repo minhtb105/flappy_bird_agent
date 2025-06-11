@@ -46,7 +46,7 @@ Training graphs are automatically generated to visualize progress.
 Flappy Bird AI is trained using Deep Q-Learning (DQN) with several optimizations:
 
 ### 🧠 Neural Network Architecture
-- **Input**: Bird's `y-position`, `velocity`, `distance to next pipe`, and `gap center`.
+- **Input**: The LIDAR sensor 180.
 - **Hidden Layers**: Fully connected deep neural network.
 - **Output**: Q-values for jump or no jump decisions.
 
