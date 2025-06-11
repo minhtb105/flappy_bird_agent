@@ -7,18 +7,20 @@
 ---
 
 ## 🚀 Features
-- **🧠 Double Deep Q-Networks (DDQN)** – More stable training by reducing Q-value overestimation.
-- **🎯 Prioritized Experience Replay (PER)** – AI learns faster by focusing on important mistakes.
-- **🌎 Stochastic Pipes (Randomized Levels)** – Prevents overfitting by forcing AI to adapt.
-- **💾 Model Checkpointing** – Saves progress every 10000 steps for later training or testing.
-
+- 🧠 **Dueling Motion Transformers** – Reduces overestimation of Q-values for stable learning.
+- 🎯 **Prioritized Experience Replay (PER)** – Learns faster by focusing on high-error transitions.
+- 📡 **LIDAR-based Observations** – Bird sees the world via 180-degree raycasting for better perception.
+- 🌪️ **Stochastic Pipe Generation** – Forces the agent to generalize by varying obstacle positions.
+- 🧱 **Temporal State Stacking** – Uses `FRAME_STACK=12` to encode time into input.
+- 💾 **Model Checkpointing** – Saves model every N episodes for resumable training or evaluation.
+- 📈 **TensorBoard Logging** – Visualize loss, rewards, Q-values, TD errors and more.
 ---
 
 ## 📥 Install Dependencies
 Ensure you have Python 3.8+ installed, then run:
 ```bash
-pip install -r requirements.txt
-
+git clone https://github.com/minhtb105/flappy-bird-agent.git
+cd flappy-bird-agent
 ---
 
 # 🤖 Training the AI
@@ -36,7 +38,7 @@ python train.py
 ```
 
 The AI will start learning from scratch!  
-Model checkpoints are saved every 500 episodes.  
+Model checkpoints are saved every 1000 episodes.  
 Training graphs are automatically generated to visualize progress.
 
 ---
@@ -54,7 +56,7 @@ Flappy Bird AI is trained using Deep Q-Learning (DQN) with several optimizations
 
 | **Feature**                     | **Purpose**                                         |
 |----------------------------------|----------------------------------------------------|
-| **Double DQN (DDQN)**            | Prevents Q-value overestimation                    |
+| **Dueling Motion Transformers**            | Prevents Q-value overestimation                    |
 | **Prioritized Experience Replay (PER)** | Speeds up learning by focusing on important experiences |
 | **Stochastic Pipes**             | Forces AI to adapt to random environments          |
 | **Soft Target Network Updates** | Improves stability during training              |
