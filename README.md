@@ -57,7 +57,7 @@ Flappy Bird AI is trained using Deep Q-Learning (DQN) with several optimizations
 | **Double DQN (DDQN)**            | Prevents Q-value overestimation                    |
 | **Prioritized Experience Replay (PER)** | Speeds up learning by focusing on important experiences |
 | **Stochastic Pipes**             | Forces AI to adapt to random environments          |
-| **Soft & Hard Target Network Updates** | Improves stability during training              |
+| **Soft Target Network Updates** | Improves stability during training              |
 
 ---
 
