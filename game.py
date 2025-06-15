@@ -2,7 +2,7 @@ import random
 import time
 import numpy as np
 import pygame
-import numba
+from numba import njit, prange
 from configs.game_configs import *
 
 
@@ -33,78 +33,123 @@ class Pipe:
     def off_screen(self):
         return self.x + PIPE_WIDTH < 0
 
-class LIDAR:
+@njit
+def segment_intersection(p1, p2, q1, q2):
+    x1, y1 = p1
+    x2, y2 = p2
+    x3, y3 = q1
+    x4, y4 = q2
+    
+    denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    if denom == 0:
+        return -1, -1, False
+    
+    px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom
+    py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom
+
+    if (
+        min(x1, x2) - 1e-6 <= px <= max(x1, x2) + 1e-6 and
+        min(y1, y2) - 1e-6 <= py <= max(y1, y2) + 1e-6 and
+        min(x3, x4) - 1e-6 <= px <= max(x3, x4) + 1e-6 and
+        min(y3, y4) - 1e-6 <= py <= max(y3, y4) + 1e-6
+    ):
+        return px, py, True
+    
+    return -1, -1, False
+
+@njit(parallel=True)
+def lidar_scan_numba(offset_x, offset_y, rot, max_dist, num_rays, pipes_array, ground_y):
+    result = np.ones(num_rays)
+
+    for i in prange(num_rays):
+        angle_degree = i * (180 / num_rays)
+        rad = np.radians(angle_degree - 90 - rot)
+
+        x_end = offset_x + max_dist * np.cos(rad)
+        y_end = offset_y + max_dist * np.sin(rad)
+
+        ray_start = (offset_x, offset_y)
+        ray_end = (x_end, y_end)
+
+        min_dist = max_dist
+
+        # Check ground collision (bottom edge)
+        gx1, gy1 = 0, ground_y
+        gx2, gy2 = WIDTH, ground_y
+        gx, gy, hit = segment_intersection(ray_start, ray_end, (gx1, gy1), (gx2, gy2))
+        if hit:
+            d = np.hypot(offset_x - gx, offset_y - gy)
+            if d < min_dist:
+                min_dist = d
+
+        # Check pipe collision (top and bottom rects)
+        for pipe in pipes_array:
+            px, top_h, bottom_h = pipe
+            pw = PIPE_WIDTH
+
+            # Top pipe rect edges
+            top_edges = [
+                ((px, 0), (px + pw, 0)),
+                ((px + pw, 0), (px + pw, top_h)),
+                ((px + pw, top_h), (px, top_h)),
+                ((px, top_h), (px, 0)),
+            ]
+            # Bottom pipe rect edges
+            by = ground_y - bottom_h
+            bottom_edges = [
+                ((px, by), (px + pw, by)),
+                ((px + pw, by), (px + pw, ground_y)),
+                ((px + pw, ground_y), (px, ground_y)),
+                ((px, ground_y), (px, by)),
+            ]
+
+            # Check all edges
+            for e1, e2 in top_edges + bottom_edges:
+                hx, hy, hit = segment_intersection(ray_start, ray_end, e1, e2)
+                if hit:
+                    d = np.hypot(offset_x - hx, offset_y - hy)
+                    if d < min_dist:
+                        min_dist = d
+
+        result[i] = min_dist / max_dist
+
+    return result
+
+class FastLIDAR:
     def __init__(self, max_distance, num_rays=180):
         self._max_distance = max_distance
         self.num_rays = num_rays
         
     def scan(self, player_x, player_y, player_rot, pipes, ground_y):
-        collisions = np.zeros((self.num_rays, 2))
-        result = np.empty([self.num_rays])
         offset_x = player_x + BIRD_WIDTH
-        offset_y = player_y + (BIRD_HEIGHT / 2)
+        offset_y = player_y + BIRD_HEIGHT / 2
 
-        visible_rot = PLAYER_ROTATION_THRESHOLD
-        if player_rot <= PLAYER_ROTATION_THRESHOLD:
-            visible_rot = player_rot
+        rot = player_rot if player_rot <= PLAYER_ROTATION_THRESHOLD else PLAYER_ROTATION_THRESHOLD
 
         pipes_sorted = sorted(pipes, key=lambda p: p.x)
 
-        for i, angle in enumerate(np.linspace(0, 180, self.num_rays, endpoint=False)):
-            rad = np.radians(angle - 90 - visible_rot)
-            x = self._max_distance * np.cos(rad) + offset_x
-            y = self._max_distance * np.sin(rad) + offset_y
-            line = (offset_x, offset_y, x, y)
-            collisions[i] = (x, y)
+        pipes_array = np.array([
+            (p.x, p.top_pipe_height, p.bottom_pipe_height) for p in pipes_sorted
+        ], dtype=np.float32)
 
-            # Check ground collision
-            ground_rect = pygame.Rect(0, BACKGROUND_HEIGHT, BASE_WIDTH, BASE_HEIGHT)
-            collision_ground = ground_rect.clipline(line)
-            if collision_ground:
-                collisions[i] = collision_ground[0]
-
-            # Check pipe collision
-            for pipe in pipes_sorted:
-                top_rect = pygame.Rect(pipe.x, 0, PIPE_WIDTH, pipe.top_pipe_height)
-                bottom_rect = pygame.Rect(pipe.x, BACKGROUND_HEIGHT - pipe.bottom_pipe_height, PIPE_WIDTH, pipe.bottom_pipe_height)
-                
-                hit = top_rect.clipline(line)
-                if hit:
-                    collisions[i] = hit[0]
-                    break
-                
-                hit = bottom_rect.clipline(line)
-                if hit:
-                    collisions[i] = hit[0]
-                    break
-
-            if collisions[i][1] > ground_y:
-                collisions[i][1] = ground_y
-
-            result[i] = np.sqrt(
-                (offset_x - collisions[i][0]) ** 2 +
-                (offset_y - collisions[i][1]) ** 2
-            )
-
-        norm_result = result / self._max_distance  
-        
-        return norm_result
+        return lidar_scan_numba(
+            offset_x, offset_y, rot, self._max_distance, self.num_rays,
+            pipes_array, ground_y
+        )
 
 class FlappyBirdPygame:
     def __init__(self, visualize=True):
+        pygame.init()
         self.visualize = visualize
-        self.screen = None
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = None
         self.font = None
         
         if self.visualize:
-            pygame.init()
-            self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-            self.clock = pygame.time.Clock()
             pygame.display.set_caption("Flappy Bird Agent")
+            self.clock = pygame.time.Clock()
             self.font = pygame.font.Font(f'assets/arial.ttf', 25)
         else:
-            self.screen = None
             self.clock = None
             self.font = None
             
@@ -128,6 +173,7 @@ class FlappyBirdPygame:
         self.max_upward_speed = MAX_UPWARD_SPEED
         self.flapped = False
         self.bird_rot = 45
+        self.score = 0
         
         self.pipes = []
         self.ray_distances = np.ones(int(NUM_RAYS)) 
@@ -137,11 +183,10 @@ class FlappyBirdPygame:
         self.reward_alive = REWARD_ALIVE
         self.penalty_edge_height = PENALTY_EDGE_HEIGHT
         self.penalty_high_alt = PENALTY_HIGH_ALT
-        self.reward_center_gap = REWARD_CENTER_GAP
 
         self.rewards = []
 
-        self.lidar = LIDAR(MAX_RAY_LENGTH, num_rays=NUM_RAYS)
+        self.lidar = FastLIDAR(MAX_RAY_LENGTH, num_rays=NUM_RAYS)
 
         if self.visualize:
             self.show_start_images()
@@ -158,7 +203,6 @@ class FlappyBirdPygame:
 
     def reset(self):
         # Reset game to original state
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.bird_x, self.bird_y = BIRD_X, BIRD_Y
         self.velocity = 0
         self.bird_rot = 45
@@ -224,16 +268,6 @@ class FlappyBirdPygame:
 
         if np.any(ray_distances_px < radius):
             return self.penalty_edge_height
-
-        next_pipes = [pipe for pipe in self.pipes if pipe.x + PIPE_WIDTH > self.bird_x]
-        if next_pipes:
-            next_pipe = min(next_pipes, key=lambda p: p.x)
-            gap_top = next_pipe.top_pipe_height
-            gap_bottom = next_pipe.bottom_pipe_height
-            bird_mid_y = self.bird_y + BIRD_HEIGHT / 2
-            
-            if gap_top < bird_mid_y < gap_bottom:
-                return self.reward_center_gap
         
         return 0
 

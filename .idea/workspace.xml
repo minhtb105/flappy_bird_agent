@@ -4,12 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="small changes in MLP architecture and attention heads">
+    <list default="true" id="de3ab3ff-ea6e-412b-9756-e876840b85fa" name="Changes" comment="feat(buffer): auto save and filter every 1000 episodes">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/agent.py" beforeDir="false" afterPath="$PROJECT_DIR$/agent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/experiment_parameter_tuning.py" beforeDir="false" afterPath="$PROJECT_DIR$/experiment_parameter_tuning.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/dqn_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/dqn_configs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/game_configs.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/game_configs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pbounds.py" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pbounds.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/game.py" beforeDir="false" afterPath="$PROJECT_DIR$/game.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/inspect_buffer.py" beforeDir="false" afterPath="$PROJECT_DIR$/inspect_buffer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/replay_buffer.py" beforeDir="false" afterPath="$PROJECT_DIR$/replay_buffer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/visualization_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/visualization_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -73,8 +77,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-PY-251.25410.159" />
-        <option value="bundled-python-sdk-e0ed3721d81e-36ea0e71a18c-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.25410.159" />
+        <option value="bundled-js-predefined-d6986cc7102b-b26f3e71634d-JavaScript-PY-251.26094.141" />
+        <option value="bundled-python-sdk-9f8e2b94138c-36ea0e71a18c-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.26094.141" />
       </set>
     </attachedChunks>
   </component>
@@ -120,7 +124,9 @@
       <workItem from="1748184637606" duration="1072000" />
       <workItem from="1748187520700" duration="585000" />
       <workItem from="1748349803164" duration="76000" />
-      <workItem from="1749222509189" duration="418000" />
+      <workItem from="1749222509189" duration="624000" />
+      <workItem from="1749539920991" duration="376000" />
+      <workItem from="1749893964973" duration="8522000" />
     </task>
     <task id="LOCAL-00001" summary="Refactor state representation &amp; fix pipe generation bug  &#10;&#10;- Replaced pixel-based state with structured state array for better learning efficiency  &#10;- Fixed pipe generation issue causing incorrect rendering and overlapping  &#10;- Improved replay buffer management for better training stability  &#10;- Adjusted game mechanics to ensure smooth obstacle spawning and movement  &#10;- General code cleanup and optimization">
       <option name="closed" value="true" />
@@ -434,7 +440,47 @@
       <option name="project" value="LOCAL" />
       <updated>1749222810226</updated>
     </task>
-    <option name="localTasksCounter" value="40" />
+    <task id="LOCAL-00040" summary="fix(lidar): correct sensor logic and adjust reward near pipes">
+      <option name="closed" value="true" />
+      <created>1749222959862</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1749222959862</updated>
+    </task>
+    <task id="LOCAL-00041" summary="feat(viz): add function to plot cosine similarity between timesteps">
+      <option name="closed" value="true" />
+      <created>1749223127605</created>
+      <option name="number" value="00041" />
+      <option name="presentableId" value="LOCAL-00041" />
+      <option name="project" value="LOCAL" />
+      <updated>1749223127605</updated>
+    </task>
+    <task id="LOCAL-00042" summary="small changes">
+      <option name="closed" value="true" />
+      <created>1749223146689</created>
+      <option name="number" value="00042" />
+      <option name="presentableId" value="LOCAL-00042" />
+      <option name="project" value="LOCAL" />
+      <updated>1749223146689</updated>
+    </task>
+    <task id="LOCAL-00043" summary="small changes">
+      <option name="closed" value="true" />
+      <created>1749540037682</created>
+      <option name="number" value="00043" />
+      <option name="presentableId" value="LOCAL-00043" />
+      <option name="project" value="LOCAL" />
+      <updated>1749540037682</updated>
+    </task>
+    <task id="LOCAL-00044" summary="feat(buffer): auto save and filter every 1000 episodes">
+      <option name="closed" value="true" />
+      <created>1749540281105</created>
+      <option name="number" value="00044" />
+      <option name="presentableId" value="LOCAL-00044" />
+      <option name="project" value="LOCAL" />
+      <updated>1749540281105</updated>
+    </task>
+    <option name="localTasksCounter" value="45" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -452,9 +498,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="feat: add multi-head attention to encoder" />
-    <MESSAGE value="feat: add visualization utilities for debugging" />
-    <MESSAGE value="fix: draw private zone" />
     <MESSAGE value="optimize import" />
     <MESSAGE value="[feat]: add multihead attention heatmap visualization for policy network" />
     <MESSAGE value="[feat]: add Boltzmann temperature decay for choose action" />
@@ -475,25 +518,12 @@
     <MESSAGE value="[feat]: add Bayesian optimization for parameter tuning" />
     <MESSAGE value="small change" />
     <MESSAGE value="move to assets folder" />
-    <MESSAGE value="small changes" />
     <MESSAGE value="small changes in MLP architecture and attention heads" />
-    <option name="LAST_COMMIT_MESSAGE" value="small changes in MLP architecture and attention heads" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/configs/dqn_configs.py</url>
-          <line>3</line>
-          <option name="timeStamp" value="16" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/configs/dqn_configs.py</url>
-          <line>2</line>
-          <option name="timeStamp" value="17" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="fix(lidar): correct sensor logic and adjust reward near pipes" />
+    <MESSAGE value="feat(viz): add function to plot cosine similarity between timesteps" />
+    <MESSAGE value="small changes" />
+    <MESSAGE value="feat(buffer): auto save and filter every 1000 episodes" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat(buffer): auto save and filter every 1000 episodes" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/flappy_bird_agent$train.coverage" NAME="train Coverage Results" MODIFIED="1747152597310" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

@@ -23,8 +23,6 @@ exploration_bounds = {
     
 learning_bounds = {
     "learning_rate": (1e-5, 1e-3),
-    "beta1": (0.85, 0.95),
-    "beta2": (0.98, 0.999),
     "adam_epsilon": (1e-8, 1e-6),       
     "weight_decay": (0.0, 1e-3),  
 }

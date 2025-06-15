@@ -4,9 +4,11 @@ import torch
 import torch.optim as optim
 import time
 import logging
+from zarr.codecs import BloscCodec
 from configs.dqn_configs import *
+from configs.game_configs import NUM_RAYS
 from dueling_motion_transformers import DuelingMotionTransformer
-from replay_buffer import PrioritizedReplayBuffer
+from replay_buffer import ZarrPrioritizedReplayBuffer
 
 # Setup logging
 logging.basicConfig(filename='logs/debug_log.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -53,10 +55,7 @@ class FlappyBirdAgent:
         self.action_dim = action_dim
         self.gamma = GAMMA
         self.learning_rate = LEARNING_RATE
-        self.beta1 = BETA1
-        self.beta2 = BETA2
         self.weight_decay = WEIGHT_DECAY
-        self.adam_epsilon = ADAM_EPSILON
         self.batch_size = BATCH_SIZE
         self.temperature = TEMP_INIT
         self.temperature_min = TEMP_MIN
@@ -65,7 +64,11 @@ class FlappyBirdAgent:
         self.insert_count = 0
         self.samples_per_insert = SAMPLES_PER_INSERT_RATIO
 
-        self.replay_buffer = PrioritizedReplayBuffer(MAX_REPLAY_SIZE)
+        self.replay_buffer = ZarrPrioritizedReplayBuffer(
+            path="models/buffer.zarr",
+            state_shape=NUM_RAYS,
+            capacity=MAX_REPLAY_SIZE,
+            overwrite=False)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.policy_net = DuelingMotionTransformer(state_dim=state_dim, action_dim=action_dim).to(self.device)
@@ -76,19 +79,12 @@ class FlappyBirdAgent:
 
         self.optimizer = optim.AdamW(self.policy_net.parameters(), 
                                     lr=self.learning_rate, 
-                                    weight_decay=self.weight_decay, 
-                                    betas=(self.beta1, self.beta2),
-                                    eps=self.adam_epsilon)
+                                    weight_decay=self.weight_decay)
 
         self.td_errors = []
         self.losses = []
-        self.grad_norms = []
-        self.max_q_values = []
-        self.min_q_values = []
         self.q_values = []
-        self.q_diffs = []
         self.train_steps = 0
-        self.temperatures = [TEMP_INIT]
 
     def choose_action(self, state, explore=True):
         try:
@@ -116,8 +112,6 @@ class FlappyBirdAgent:
 
     def update_temperature(self):
         self.temperature = max(self.temperature * TEMP_DECAY, TEMP_MIN)
-        self.temperatures.append(self.temperature)
-
 
     def train(self):
         self.train_steps += 1
@@ -126,14 +120,11 @@ class FlappyBirdAgent:
         if self.insert_count % self.samples_per_insert != 0:
             return
 
-        if len(self.replay_buffer.memory) < MIN_REPLAY_SIZE:
+        if len(self.replay_buffer) < MIN_REPLAY_SIZE:
             return
 
-        if self.train_steps % 10000 == 0 and self.train_steps != 0:
-            self.replay_buffer.decay_alpha(self.train_steps)
-
         try:
-            sample = self.replay_buffer.sample()
+            sample = self.replay_buffer.sample(self.batch_size)
             if sample is None:
                 return
 
@@ -145,13 +136,7 @@ class FlappyBirdAgent:
             weights = weights.to(self.device)
             
             q_values = self.policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-            q_targets = self.target_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-            diff = torch.abs(q_values - q_targets).mean().item()
-            self.q_diffs.append(diff)
-
             self.q_values.append(q_values.mean().item())
-            self.max_q_values.append(q_values.max().item())
-            self.min_q_values.append(q_values.min().item())
 
             with torch.no_grad():
                 best_actions = self.policy_net(next_states).argmax(dim=1, keepdim=True)
@@ -169,15 +154,8 @@ class FlappyBirdAgent:
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), GLOBAL_CLIP_NORM)
 
-            total_norm = 0.0
-            for p in self.policy_net.parameters():
-                if p.grad is not None:
-                    param_norm = p.grad.data.norm(2)
-                    total_norm += param_norm.item() ** 2
-            total_norm = total_norm ** 0.5
-            self.grad_norms.append(total_norm)
-
             self.optimizer.step()
+            self.replay_buffer.update_beta(self.train_steps)
             del loss, q_values, td_errors
             torch.cuda.empty_cache()
 
@@ -192,31 +170,12 @@ class FlappyBirdAgent:
         if self.td_errors and step % 20 == 0 and step > 0:
             writer.add_scalar(f"Train/TD_Error/EP_{(step // 1000 + 1) * 1000}", self.td_errors[-1], step)
 
-        if self.grad_norms and step % 20 == 0 and step > 0:
-            writer.add_scalar(f"Train/GradNorm/EP_{(step // 1000 + 1) * 1000}", self.grad_norms[-1], step)
-
         if self.q_values and step % 20 == 0 and step > 0:
             writer.add_scalar(f"Train/QValue/EP_{(step // 1000 + 1) * 1000}", self.q_values[-1], step)
 
-        if self.max_q_values and self.min_q_values and step % 50 == 0 and step > 0:
-            writer.add_scalars("Train/QStats", {"q_max": self.max_q_values[-1], "q_min": self.min_q_values[-1]}, step)
-
-        if self.q_diffs and step % 20 == 0 and step > 0:
-            if self.use_soft_update:
-                writer.add_scalar(f"Train/Soft_Update/QDiff/EP_{(step // 1000 + 1) * 1000}", self.q_diffs[-1], step)
-            else:
-                writer.add_scalar(f"Train/Hard_Update/QDiff/EP_{(step // 1000 + 1) * 1000}", self.q_diffs[-1], step)
-
-        if self.temperatures and step % 20 == 0 and step > 0:
-            writer.add_scalar(f"Train/Temperature/EP_{(step // 1000 + 1) * 1000}", self.temperatures[-1], step)
-
-        # Priority alpha decay
-        if hasattr(self.replay_buffer, "alpha") and step % 20 == 0 and step > 0:
-            writer.add_scalar(f"Train/Replay_Buffer_Alpha/EP_{(step // 1000 + 1) * 1000}", self.replay_buffer.alpha, step)
-
         # Attention map as image
         attn = self.policy_net.get_attention_weights()
-        if attn is not None and step % 300 == 0 and step > 0:
+        if attn is not None and step % 1000 == 0 and step > 0:
             try:
                 import matplotlib.pyplot as plt
                 import io
@@ -234,12 +193,9 @@ class FlappyBirdAgent:
                 writer.add_image("Train/Attention", image, step)
                 plt.close()
             except Exception as e:
-                pass  # Avoid crash on image logging
+                print(e)
             
         writer.flush()    
-            
-    def hard_update_target(self):
-        self.target_net.load_state_dict(self.policy_net.state_dict())
 
     def soft_update_target(self, tau):
         for target_param, policy_param in zip(self.target_net.parameters(), self.policy_net.parameters()):

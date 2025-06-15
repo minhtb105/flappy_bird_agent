@@ -7,6 +7,7 @@ import imageio
 from collections import deque
 import argparse
 from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader
 from agent import FlappyBirdAgent 
 from configs.dqn_configs import *
 from configs.game_configs import *
@@ -15,7 +16,7 @@ from visualization_utils import *
 
 
 # Initialize game and agent
-game = FlappyBirdPygame()
+game = FlappyBirdPygame(visualize=True)
 state_dim = NUM_RAYS 
 num_actions = 2  # [Do nothing, Jump]
 agent = FlappyBirdAgent(state_dim, num_actions)
@@ -25,27 +26,13 @@ agent.count_parameters()
 writer = SummaryWriter("plots/")
 
 def train_loop(config=None, 
-               num_episodes=NUM_EPISODES, 
-               visualize=True, 
-               record_video=False, 
+               num_episodes=NUM_EPISODES,
+               visualize=False,
+               record_video=True, 
                video_path="plots/training_record.mp4"):
-    """
-    Train the agent with custom reward/penalty shaping parameters.
-
-    Args:
-        config (dict): {
-            "reward_pass_pipe": float,
-            "penalty_death": float,
-            "reward_alive": float,
-            "reward_center_gap": float,
-            "penalty_edge_height": float,
-            "penalty_high_alt": float,
-            "reward_medium_alt": float,
-        }
-        num_episodes (int): number of episodes to train
-    """
-    agent.replay_buffer.load_and_merge_replay_buffers()
+    
     load_model()
+    agent.replay_buffer.load_checkpoint("models/buffer.zarr")
     if config:
         for param, value in config.items():
             if hasattr(game, param):
@@ -58,8 +45,6 @@ def train_loop(config=None,
         learning_keys = {"learning_rate", "weight_decay", "beta1", "beta2"}
         if any(k in config for k in learning_keys):
             agent.update_optimizer()
-        
-    game.visualize = visualize
 
     max_score, consecutive_wins, steps = 0, 0, 0
 
@@ -67,16 +52,15 @@ def train_loop(config=None,
         video_writer = imageio.get_writer(video_path, fps=FPS, codec="libx264")
     else:
         video_writer = None
-        
+    
     for episode in range(num_episodes):
         game.reset()
         state = game.get_state()
         state_seq = deque([state] * FRAME_STACK, maxlen=FRAME_STACK)
-        total_score = 0
         is_winning_episode = True
 
         while not game.is_game_over and steps < MAX_STEPS_PER_EPISODE:
-            if record_video and hasattr(game, "screen") and total_score > max_score:
+            if record_video and hasattr(game, "screen") and game.score > max_score:
                 frame = pygame.surfarray.array3d(game.screen)
                 frame = frame.transpose(1, 0, 2)  # (width, height, 3) -> (height, width, 3)
                 if frame.shape[0] != HEIGHT or frame.shape[1] != WIDTH:
@@ -91,47 +75,37 @@ def train_loop(config=None,
 
             action_one_hot = [0, 1] if action == 1 else [1, 0]
 
-            reward, game_over, score = game.step(action_one_hot)
-            total_score += score
+            reward, game_over, _ = game.step(action_one_hot)
             next_state = game.get_state()
             state_seq.append(next_state)
             next_state_array = np.array(state_seq)
 
             agent.update_temperature()
-            agent.replay_buffer.store_transition(state_array, action, reward, next_state_array)
+            agent.replay_buffer.store(state_array, action, reward, next_state_array, game.is_game_over)
             agent.insert_count += 1
             agent.train()
 
-            game.is_game_over = game_over
             steps += 1
-
-            if agent.use_soft_update:
-                agent.soft_update_target(TAU)
-            else:
-                if steps % TARGET_UPDATE_FREQ == 0 and steps != 0:
-                    agent.hard_update_target()
+            agent.soft_update_target(TAU)
 
             if game_over:
                 break
 
-        max_score = max(max_score, total_score)
+        max_score = max(max_score, game.score)
 
         if visualize:
             agent.log_to_tensorboard(writer, episode)
 
-        if game.is_game_over or total_score == 0:
+        if game.is_game_over or game.score == 0:
             is_winning_episode = False
 
         consecutive_wins = consecutive_wins + 1 if is_winning_episode else 0
-
-        if episode % SAVE_REPLAY_BUFFER_INTERVAL == 0 and episode != 0:
-            agent.replay_buffer.filter_buffer(episode)
-            agent.replay_buffer.load_and_merge_replay_buffers()
             
         if episode % SAVE_INTERVAL == 0 and episode != 0:
             async_save("models/policy.pth", agent.policy_net.state_dict())
             async_save("models/target.pth", agent.target_net.state_dict())
             async_save("models/optimizer.pth", agent.optimizer.state_dict())
+            agent.replay_buffer.save_checkpoint()
 
         if consecutive_wins >= CONSECUTIVE_WINS_THRESHOLD:
             logging.info(f"AI has won {CONSECUTIVE_WINS_THRESHOLD} times in a row. Stopping training.")
@@ -184,19 +158,19 @@ def test_loop(num_episodes=100, max_steps_per_episode=1000):
 
 def load_model():
     if os.path.exists("models/policy_net.pth"):
-        agent.policy_net.load_state_dict(torch.load("models/policy_net.pth"), weights_only=False)
+        agent.policy_net.load_state_dict(torch.load("models/policy_net.pth"))
         logging.info("Policy network loaded successfully.")
     else:
         logging.warning("No model found to load.")
 
     if os.path.exists("models/target_net.pth"):
-        agent.target_net.load_state_dict(torch.load("models/target_net.pth"), weights_only=False)
+        agent.target_net.load_state_dict(torch.load("models/target_net.pth"))
         logging.info("Target network loaded successfully.")
     else:
         logging.warning("No target network found to load.")
 
     if os.path.exists("models/optimizer.pth"):
-        agent.optimizer.load_state_dict(torch.load("models/optimizer.pth"), weights_only=False)
+        agent.optimizer.load_state_dict(torch.load("models/optimizer.pth"))
         logging.info("Optimizer state loaded successfully.")
     else:
         logging.warning("No optimizer state found to load.")

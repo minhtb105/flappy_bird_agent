@@ -1,4 +1,4 @@
-import torch
+from replay_buffer import load_and_merge_replay_buffers
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
@@ -112,8 +112,8 @@ def deduplicate_transitions(buffer_dict):
     return {k: v[keep_indices] for k, v in buffer_dict.items()}
 
 
-# if __name__ == "__main__":
-#     buffer_data = load_and_merge_replay_buffers()
-#     if buffer_data:
-#         # inspect_buffer(buffer_data)
-#         filtered = filter_buffer(buffer_data, random_ratio=0.2, reward_ratio=0.4, td_error_ratio=0.4, buffer_size=100)
+if __name__ == "__main__":
+    buffer_data = load_and_merge_replay_buffers()
+    if buffer_data:
+        inspect_buffer(buffer_data)
+        
