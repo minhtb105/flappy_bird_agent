@@ -57,38 +57,6 @@ Flappy Bird AI is trained using Dueling Motion Transformers with several optimiz
 - **Hidden Layers**: Fully connected deep neural network.
 - **Output**: Q-values for jump or no jump decisions.
 
-### 🔁 Replay Buffer Design (Prioritized + Filtered)
-The replay buffer is designed for efficiency and focus by selectively retaining high-quality transitions. It includes:
-
-🧠 Filtering Strategy
-Before saving the buffer to disk, we filter transitions from memory using the following weighted sampling criteria:
-
-Type	Description	Ratio
-🔄 random_ratio	Uniformly random transitions (ensure diversity)	20%
-💰 reward_ratio	Transitions with high absolute reward values	40%
-🔥 priority_ratio	Transitions with high TD-error priorities (PER)	40%
-
-This ensures the agent learns from:
-
-both mistakes and successes (reward_ratio),
-
-surprising/difficult transitions (priority_ratio),
-
-and a small set of random noise for generalization (random_ratio).
-
-These filtered samples are saved periodically to disk.
-
-💾 Efficient Batch-Saving & Loading
-Instead of saving the entire replay buffer at once (which is large), the filtered samples are:
-
-✅ Split into batches (e.g., 50,000 samples per chunk)
-
-✅ Saved as .pt files (e.g., replay_buffer_epXXX_chunk0.pt)
-
-✅ Reloaded later and merged during fine-tuning or evaluation
-
-This helps reduce memory usage and improves I/O performance during long training runs.
-
 ---
 
 🗂 Directory Structure
