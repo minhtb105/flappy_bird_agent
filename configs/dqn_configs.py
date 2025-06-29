@@ -18,12 +18,12 @@ GLOBAL_CLIP_NORM = 1  # Globally normalized clipping of gradient
 FRAME_STACK = 12  # Size of short-term (episodic) memory
 
 # Exploration parameters
-TEMP_INIT = 1
-TEMP_MIN = 0.05
+TEMP_INIT = 0.5
+TEMP_MIN = 0.01
 TEMP_DECAY = 0.999999
 
 # Replay Memory
-MAX_REPLAY_SIZE = 1000000
+MAX_REPLAY_SIZE = 500000
 MIN_REPLAY_SIZE = 1000
 SAMPLES_PER_INSERT_RATIO = 32
 ALPHA_INIT = 0.5  # Control the amount of prioritization

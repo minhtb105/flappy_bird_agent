@@ -15,8 +15,8 @@ class Pipe:
         self.speed = PIPE_SPEED
 
         """Randomizes pipe height and gap size while ensuring a valid gap."""
-        min_pipe_height = 50  # Minimum pipe height (prevents pipes from covering the whole screen)
-        max_pipe_height = BACKGROUND_HEIGHT - 100  # Ensure there's enough space for the gap
+        min_pipe_height = 90  # Minimum pipe height (prevents pipes from covering the whole screen)
+        max_pipe_height = 300  # Ensure there's enough space for the gap
 
         self.top_pipe_height = random.randint(min_pipe_height, max_pipe_height - PIPE_GAP_SIZE)
         self.bottom_pipe_height = BACKGROUND_HEIGHT - self.top_pipe_height - PIPE_GAP_SIZE
@@ -315,7 +315,7 @@ class FlappyBirdPygame:
         if self.pipes and self.pipes[0].x < -PIPE_WIDTH:
             last_pipe_x = self.pipes[-1].x
             self.pipes.pop(0)
-            self.pipes.append(Pipe(last_pipe_x + PIPE_WIDTH + PIPE_SPACING))
+            self.pipes.append(Pipe(WIDTH + PIPE_WIDTH + WIDTH * 0.2))
 
         # Collision detection
         for pipe in self.pipes:

@@ -4,11 +4,10 @@ import torch
 import torch.optim as optim
 import time
 import logging
-from zarr.codecs import BloscCodec
 from configs.dqn_configs import *
 from configs.game_configs import NUM_RAYS
 from dueling_motion_transformers import DuelingMotionTransformer
-from replay_buffer import ZarrPrioritizedReplayBuffer
+from replay_buffer import PrioritizedReplayBuffer
 
 # Setup logging
 logging.basicConfig(filename='logs/debug_log.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -64,11 +63,7 @@ class FlappyBirdAgent:
         self.insert_count = 0
         self.samples_per_insert = SAMPLES_PER_INSERT_RATIO
 
-        self.replay_buffer = ZarrPrioritizedReplayBuffer(
-            path="models/buffer.zarr",
-            state_shape=NUM_RAYS,
-            capacity=MAX_REPLAY_SIZE,
-            overwrite=False)
+        self.replay_buffer = PrioritizedReplayBuffer()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.policy_net = DuelingMotionTransformer(state_dim=state_dim, action_dim=action_dim).to(self.device)
@@ -120,7 +115,7 @@ class FlappyBirdAgent:
         if self.insert_count % self.samples_per_insert != 0:
             return
 
-        if len(self.replay_buffer) < MIN_REPLAY_SIZE:
+        if len(self.replay_buffer.memory) < MIN_REPLAY_SIZE:
             return
 
         try:
@@ -146,6 +141,7 @@ class FlappyBirdAgent:
             td_errors = target_q_values - q_values
             self.td_errors.append(td_errors.abs().mean().item())
             self.replay_buffer.update_priorities(indices, td_errors.abs().detach().cpu().numpy())
+            self.replay_buffer.update_beta(self.train_steps)
 
             loss = (weights * torch.log(torch.cosh(td_errors))).mean()
             self.losses.append(loss.item())
@@ -155,7 +151,6 @@ class FlappyBirdAgent:
             torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), GLOBAL_CLIP_NORM)
 
             self.optimizer.step()
-            self.replay_buffer.update_beta(self.train_steps)
             del loss, q_values, td_errors
             torch.cuda.empty_cache()
 
