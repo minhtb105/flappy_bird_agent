@@ -12,42 +12,6 @@ from replay_buffer import PrioritizedReplayBuffer
 # Setup logging
 logging.basicConfig(filename='logs/debug_log.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Error tracking structures
-last_logged_errors = {}
-error_counts = {
-    "q_nan": 0,
-    "invalid_probs": 0,
-    "train_failure": 0,
-    "store_transition_failure": 0,
-    "choose_action_failure": 0,
-}
-
-def log_once_per(error_key: str, message: str, step: int, interval_seconds: int = 500, interval_steps: int = 1000, level: str = "error"):
-    now = time.time()
-    if error_key not in last_logged_errors or (now - last_logged_errors[error_key]) > interval_seconds:
-        last_logged_errors[error_key] = now
-        
-        if level == "warning":
-            logging.warning(message)
-        elif level == "info":
-            logging.info(message)
-        elif level == "debug":
-            logging.debug(message)
-        else:
-            logging.error(message)
-
-    if step % interval_steps == 0 and error_counts[error_key] > 0:
-        logging.info(f"[{error_key}] occurred {error_counts[error_key]} times in last {interval_steps} steps")
-        error_counts[error_key] = 0
-
-def log_error_stats(step, interval=1000):
-    if step % interval == 0:
-        for key, count in error_counts.items():
-            if count > 0:
-                logging.warning(f"[{key}] occurred {count} times in last {interval} steps")
-                error_counts[key] = 0
-
-
 class FlappyBirdAgent:
     def __init__(self, state_dim, action_dim):
         self.state_dim = state_dim
@@ -100,8 +64,8 @@ class FlappyBirdAgent:
             return int(action)
 
         except Exception as e:
-            error_counts["choose_action"] += 1
-            log_once_per("choose_action_failure", f"[choose_action] Exception: {str(e)}", self.train_steps)
+            logging.error(f"Choose action error: {e}")
+            raise e
             
             return random.randint(0, self.action_dim - 1)
 
@@ -110,7 +74,6 @@ class FlappyBirdAgent:
 
     def train(self):
         self.train_steps += 1
-        log_error_stats(self.train_steps, interval=1000)
         
         if self.insert_count % self.samples_per_insert != 0:
             return
@@ -155,9 +118,8 @@ class FlappyBirdAgent:
             torch.cuda.empty_cache()
 
         except Exception as e:
-            error_counts["train_failure"] += 1
-            log_once_per("train_failure", f"[train] Training failed: {str(e)}", self.train_steps)
-
+            logging.error(f"Train error: {e}")
+            raise e
     def log_to_tensorboard(self, writer, step):
         if self.losses and step % 20 == 0 and step > 0:
             writer.add_scalar(f"Train/Loss/EP_{(step // 1000 + 1) * 1000}", self.losses[-1], step)
@@ -188,7 +150,7 @@ class FlappyBirdAgent:
                 writer.add_image("Train/Attention", image, step)
                 plt.close()
             except Exception as e:
-                print(e)
+                raise e
             
         writer.flush()    
 
@@ -199,8 +161,6 @@ class FlappyBirdAgent:
     def count_parameters(self):
         total = sum(p.numel() for p in self.policy_net.parameters())
         trainable = sum(p.numel() for p in self.policy_net.parameters() if p.requires_grad)
-        print(f"Total parameters: {total:,}")
-        print(f"Trainable parameters: {trainable:,}")
         logging.info(f"Total parameters: {total}, Trainable parameters: {trainable}")
 
     def update_optimizer(self):

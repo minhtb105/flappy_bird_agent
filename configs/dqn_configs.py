@@ -23,7 +23,7 @@ TEMP_MIN = 0.01
 TEMP_DECAY = 0.999999
 
 # Replay Memory
-MAX_REPLAY_SIZE = 500000
+MAX_REPLAY_SIZE = 400000
 MIN_REPLAY_SIZE = 1000
 SAMPLES_PER_INSERT_RATIO = 32
 ALPHA_INIT = 0.5  # Control the amount of prioritization
@@ -36,7 +36,7 @@ TARGET_UPDATE_FREQ = 1000  # Hard update target network every 1000 steps
 LOAD_MODEL = True  # Load from a saved checkpoint if available
 SAVE_INTERVAL = 1000  # Save the model every 1000 episodes
 TEST_MODE = False  # If True, AI only plays without training
-NUM_EPISODES = 10000  
+NUM_EPISODES = 10000
 MAX_STEPS_PER_EPISODE = 10000000  # Maximum steps per episode
 CONSECUTIVE_WINS_THRESHOLD = 100  # Stop training if AI wins 100 consecutive episodes
 SAVE_REPLAY_BUFFER_INTERVAL = 1000  # Save the replay buffer every 1000 episodes

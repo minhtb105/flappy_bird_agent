@@ -1,18 +1,18 @@
 import pygame
 import os
+import numpy as np
 import sys
-import cv2
 import logging
 import imageio
 from collections import deque
-import argparse
+import torch
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader
 from agent import FlappyBirdAgent 
-from configs.dqn_configs import *
-from configs.game_configs import *
+from configs.dqn_configs import (NUM_EPISODES, TAU, FRAME_STACK,
+                                 MAX_STEPS_PER_EPISODE, SAVE_INTERVAL,
+                                 CONSECUTIVE_WINS_THRESHOLD)
+from configs.game_configs import NUM_RAYS, FPS
 from game import FlappyBirdPygame
-from visualization_utils import *
 
 
 # Initialize game and agent
@@ -31,8 +31,10 @@ def train_loop(config=None,
                num_episodes=NUM_EPISODES,
                visualize=False,
                record_video=True):
+    max_score = 0
     try:
         load_model()
+        agent.replay_buffer.load_from_torch_dict()
         if config:
             for param, value in config.items():
                 if hasattr(game, param):
@@ -46,8 +48,7 @@ def train_loop(config=None,
             if any(k in config for k in learning_keys):
                 agent.update_optimizer()
 
-        max_score, consecutive_wins, steps = 0, 0, 0
-        
+        consecutive_wins, steps = 0, 0
         for episode in range(num_episodes):
             game.reset()
             state = game.get_state()
@@ -65,7 +66,7 @@ def train_loop(config=None,
 
                 with torch.no_grad():
                     action = agent.choose_action(state_tensor)
-
+                    
                 action_one_hot = [0, 1] if action == 1 else [1, 0]
 
                 reward, game_over, _ = game.step(action_one_hot)
@@ -95,23 +96,24 @@ def train_loop(config=None,
             consecutive_wins = consecutive_wins + 1 if is_winning_episode else 0
                 
             if episode % SAVE_INTERVAL == 0 and episode != 0:
-                async_save("models/policy.pth", agent.policy_net.state_dict())
-                async_save("models/target.pth", agent.target_net.state_dict())
-                async_save("models/optimizer.pth", agent.optimizer.state_dict())
+                torch.save(agent.policy_net.state_dict(), "models/policy.pth")
+                torch.save(agent.target_net.state_dict(), "models/target.pth")
+                torch.save(agent.optimizer.state_dict(), "models/optimizer.pth")
 
             if consecutive_wins >= CONSECUTIVE_WINS_THRESHOLD:
                 logging.info(f"AI has won {CONSECUTIVE_WINS_THRESHOLD} times in a row. Stopping training.")
                 break
-    except Exception as e:
-        raise e
+        
+        return game.rewards
     finally:
-        if video_writer is not None:
+        agent.replay_buffer.to_torch_dict(path="models/buffer.pth")
+        if video_writer is None:
+            pass
+        else:
             video_writer.close()
             logging.info(f"Video saved to {video_path}")
-        
-        logging.info(f"Training completed. Max test score: {max_score}")
 
-        return game.rewards
+        logging.info(f"Training completed. Max test score: {max_score}")
 
 def test_loop(num_episodes=100, max_steps_per_episode=1000):
     load_model()
@@ -169,30 +171,9 @@ def load_model():
     else:
         logging.warning("No optimizer state found to load.")
          
-def async_save(path, obj):
-    import threading
-    t = threading.Thread(target=torch.save, args=(obj, path))
-    t.start()
 
 if __name__ == "__main__":
-    
-    parser = argparse.ArgumentParser(description="Train Flappy Bird AI")
-    parser.add_argument("--mode", type=str, choices=['train', 'test'], default='train')
-    parser.add_argument("--log-level", type=str, choices=['debug', 'info', 'warning', 'error'], default='info', help="Logging level")
-    args = parser.parse_args()
-    
-    log_levels = {'debug': logging.DEBUG, 'info': logging.INFO, 'warning': logging.WARNING, 'error': logging.ERROR}
-    logging.basicConfig(filename='logs/debug_log.txt', level=log_levels[args.log_level], format='%(asctime)s - %(levelname)s - %(message)s')
-
-    logging.getLogger('matplotlib').setLevel(logging.WARNING)
-    logging.getLogger('PIL').setLevel(logging.WARNING)
-    logging.getLogger('font_manager').setLevel(logging.ERROR)
-
-    if args.mode == 'train':
-        train_loop(record_video=True)
-    else:
-        test_loop()
-
+    train_loop(record_video=True)
     video_writer.close()
     pygame.display.quit()
     pygame.quit()
