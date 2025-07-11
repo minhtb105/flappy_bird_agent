@@ -8,8 +8,10 @@ from configs.dqn_configs import *
 from configs.game_configs import NUM_RAYS
 from dueling_motion_transformers import DuelingMotionTransformer
 from replay_buffer import PrioritizedReplayBuffer
+import os
 
 # Setup logging
+os.makedirs("logs/", exist_ok=True)
 logging.basicConfig(filename='logs/debug_log.txt', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class FlappyBirdAgent:

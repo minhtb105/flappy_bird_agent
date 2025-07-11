@@ -115,43 +115,6 @@ def train_loop(config=None,
 
         logging.info(f"Training completed. Max test score: {max_score}")
 
-def test_loop(num_episodes=100, max_steps_per_episode=1000):
-    load_model()
-    agent.policy_net.eval()
-    agent.target_net.eval()
-    
-    max_score = 0
-    test_scores = []
-
-    for _ in range(num_episodes):
-        game.reset()
-        state = game.get_state()
-        state_seq = deque([state] * FRAME_STACK, maxlen=FRAME_STACK)
-        total_reward, total_score, steps = 0, 0, 0
-
-        while not game.is_game_over and steps < max_steps_per_episode:
-            state_tensor = torch.tensor(state_seq, dtype=torch.float32).unsqueeze(0).to(agent.device)
-            with torch.no_grad():
-                action = agent.choose_action(state_tensor, explore=False)
-            action_one_hot = [0, 1] if action == 1 else [1, 0]
-            reward, game_over, score = game.step(action_one_hot)
-            next_state = game.get_state()
-            state_seq.append(next_state)
-            total_reward += reward
-            steps += 1
-            total_score += score
-
-            if game_over:
-                break
-
-        test_scores.append(total_score)
-        max_score = max(max_score, total_score)
-        game.reset()
-
-    logging.info(f"Testing completed. Max test score: {max_score}")
-    pygame.display.quit()
-    pygame.quit()
-
 def load_model():
     if os.path.exists("models/policy_net.pth"):
         agent.policy_net.load_state_dict(torch.load("models/policy_net.pth"))
