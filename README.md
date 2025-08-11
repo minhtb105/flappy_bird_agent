@@ -4,7 +4,7 @@
 
 ---
 ## 🎥 Demo
-[![Flappy Bird AI Demo](assets/demo_thumbnail.png)](assets/demo.mp4)
+![Flappy Bird AI Demo](assets/demo.gif)
 ---
 
 ## 🚀 Features
