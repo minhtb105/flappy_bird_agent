@@ -2,8 +2,9 @@
 
 🚀 **Flappy Bird AI** is a deep reinforcement learning (RL) agent trained using **Motion Transformers** and **Prioritized Experience Replay (PER)**. The AI learns to **play Flappy Bird autonomously**, adapting to dynamic environments with **stochastic pipes**.
 
+---
+## 🎥 Demo
 [![Flappy Bird AI Demo](assets/demo_thumbnail.png)](assets/demo.mp4)
-
 ---
 
 ## 🚀 Features
